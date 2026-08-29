@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboards · Dulce Caña</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboards.css}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main style="max-width:1200px;">
+    <div class="dsh-root" id="dshRoot">
+
+        <div class="dsh-topbar">
+            <div>
+                <h1>Dashboards gerenciales — Dulce Caña</h1>
+                <div class="dsh-meta">
+                    Inteligencia de Negocios (BI) · UTEQ · Periodo 2026-2027<br>
+                    Herramienta: <b>agente Claude vía MCP</b> · datos en vivo desde <b>dw_dulce_cana</b>
+                </div>
+            </div>
+            <button class="dsh-theme-btn" id="themeToggle" type="button">Modo oscuro</button>
+        </div>
+
+        <div class="dsh-headline">
+            <div><div class="dsh-label">Ingreso total del periodo</div><div class="dsh-value" id="hl-ingreso">—</div></div>
+            <div><div class="dsh-label">Pedidos registrados</div><div class="dsh-value" id="hl-pedidos">—</div></div>
+            <div><div class="dsh-label">Periodo cubierto</div><div class="dsh-value" id="hl-periodo" style="font-size:15px">—</div></div>
+        </div>
+
+        <nav class="dsh-tabs" role="tablist">
+            <button class="dsh-tab" role="tab" aria-selected="true" data-target="p1"><span class="n">01</span>Ventas por producto</button>
+            <button class="dsh-tab" role="tab" aria-selected="false" data-target="p2"><span class="n">02</span>Evolución mensual</button>
+            <button class="dsh-tab" role="tab" aria-selected="false" data-target="p3"><span class="n">03</span>Clientes</button>
+            <button class="dsh-tab" role="tab" aria-selected="false" data-target="p4"><span class="n">04</span>Pedidos</button>
+            <button class="dsh-tab" role="tab" aria-selected="false" data-target="p5"><span class="n">05</span>Proveedores &amp; producción</button>
+        </nav>
+
+        <div id="dshLoading" style="padding:30px 2px; font-size:13px; color:var(--dsh-ink-soft)">Cargando datos desde dw_dulce_cana…</div>
+
+        <div id="dshContent" style="display:none">
+
+            <!-- ============ D1 — VENTAS POR PRODUCTO ============ -->
+            <section class="dsh-panel active" id="p1">
+                <div class="dsh-objective"><b>Objetivo gerencial:</b> identificar qué línea y qué productos concentran el ingreso, para priorizar producción, inventario y promoción.</div>
+
+                <div class="dsh-kpi-row">
+                    <div class="dsh-kpi"><div class="k-label" id="k1-1-label">Línea líder</div><div class="k-value" id="k1-1-value">—</div><div class="k-sub" id="k1-1-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label" id="k1-2-label">—</div><div class="k-value" id="k1-2-value">—</div><div class="k-sub" id="k1-2-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label" id="k1-3-label">—</div><div class="k-value" id="k1-3-value">—</div><div class="k-sub" id="k1-3-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Producto individual top</div><div class="k-value" id="k1-4-value" style="font-size:15px">—</div><div class="k-sub" id="k1-4-sub"></div></div>
+                </div>
+
+                <div class="dsh-card">
+                    <h3>Ingreso por línea de producto</h3>
+                    <div class="card-sub">Suma de subtotal de venta, agrupado por tipo de producto</div>
+                    <div class="dsh-bars" id="chart-tipoProducto"></div>
+                </div>
+                <details class="dsh-evidence"><summary>Ver tabla — top 5 productos por ingreso</summary>
+                    <div class="inner table-scroll"><table class="dsh-table" id="tbl-productos">
+                        <thead><tr><th>Producto</th><th>Línea</th><th class="num">Ingreso</th><th class="num">Unidades</th></tr></thead>
+                        <tbody></tbody>
+                    </table></div>
+                </details>
+                <details class="dsh-evidence"><summary>Ver consulta SQL usada (evidencia MCP)</summary>
+                    <div class="inner"><pre class="dsh-sql">SELECT dp.tipo_producto, dp.nombre_producto, dp.precio_lista,
+       SUM(f.subtotal) AS ingreso, SUM(f.cantidad) AS unidades,
+       ROUND(AVG(f.precio_unitario), 2) AS precio_promedio
+FROM dw_dulce_cana.fact_ventas_dc f
+JOIN dw_dulce_cana.dim_producto_dc dp ON f.id_producto_dw = dp.id_producto_dw
+GROUP BY dp.tipo_producto, dp.nombre_producto, dp.precio_lista
+ORDER BY ingreso DESC;</pre></div>
+                </details>
+                <p class="dsh-insight" id="insight-1"></p>
+            </section>
+
+            <!-- ============ D2 — EVOLUCIÓN MENSUAL ============ -->
+            <section class="dsh-panel" id="p2">
+                <div class="dsh-objective"><b>Objetivo gerencial:</b> monitorear la tendencia de ingresos mes a mes para anticipar estacionalidad y planificar flujo de caja y producción.</div>
+
+                <div class="dsh-kpi-row">
+                    <div class="dsh-kpi"><div class="k-label">Ingreso del periodo</div><div class="k-value" id="k2-1-value">—</div><div class="k-sub" id="k2-1-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Mes de mayor venta</div><div class="k-value" id="k2-2-value" style="font-size:16px">—</div><div class="k-sub" id="k2-2-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Variación último mes</div><div class="k-value" id="k2-3-value">—</div><div class="k-sub" id="k2-3-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Ticket promedio</div><div class="k-value" id="k2-4-value">—</div><div class="k-sub">por pedido, todo el periodo</div></div>
+                </div>
+
+                <div class="dsh-card">
+                    <h3>Ingreso mensual</h3>
+                    <div class="card-sub">Suma de subtotal de venta por mes calendario</div>
+                    <div class="dsh-linechart-wrap"><svg class="dsh-linechart" id="chart-mensual" viewBox="0 0 900 260" width="900" height="260"></svg></div>
+                </div>
+                <details class="dsh-evidence"><summary>Ver consulta SQL usada (evidencia MCP)</summary>
+                    <div class="inner"><pre class="dsh-sql">SELECT df.anio, df.mes, df.nombre_mes,
+       SUM(f.subtotal) AS ingreso,
+       COUNT(DISTINCT f.id_pedido_origen) AS pedidos
+FROM dw_dulce_cana.fact_ventas_dc f
+JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha
+GROUP BY df.anio, df.mes, df.nombre_mes
+ORDER BY df.anio, df.mes;</pre></div>
+                </details>
+                <p class="dsh-insight" id="insight-2"></p>
+            </section>
+
+            <!-- ============ D3 — CLIENTES ============ -->
+            <section class="dsh-panel" id="p3">
+                <div class="dsh-objective"><b>Objetivo gerencial:</b> segmentar la cartera de clientes para dirigir estrategias comerciales diferenciadas por tipo de cliente.</div>
+
+                <div class="dsh-kpi-row">
+                    <div class="dsh-kpi"><div class="k-label">Segmento líder</div><div class="k-value" id="k3-1-value" style="font-size:16px">—</div><div class="k-sub" id="k3-1-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Concentración top 5 clientes</div><div class="k-value" id="k3-2-value">—</div><div class="k-sub" id="k3-2-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Clientes activos</div><div class="k-value" id="k3-3-value">—</div><div class="k-sub" id="k3-3-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Mayor ticket promedio</div><div class="k-value" id="k3-4-value" style="font-size:16px">—</div><div class="k-sub" id="k3-4-sub"></div></div>
+                </div>
+
+                <div class="dsh-card">
+                    <h3>Ingreso por tipo de cliente</h3>
+                    <div class="card-sub">Suma de subtotal, agrupado por segmento comercial</div>
+                    <div class="dsh-bars" id="chart-tipoCliente"></div>
+                </div>
+                <details class="dsh-evidence"><summary>Ver tabla — top 5 clientes por ingreso</summary>
+                    <div class="inner table-scroll"><table class="dsh-table" id="tbl-clientes">
+                        <thead><tr><th>Cliente</th><th class="num">Ingreso</th><th class="num">% del total</th></tr></thead>
+                        <tbody></tbody>
+                    </table></div>
+                </details>
+                <details class="dsh-evidence"><summary>Ver consulta SQL usada (evidencia MCP)</summary>
+                    <div class="inner"><pre class="dsh-sql">SELECT dc.tipo_cliente, SUM(f.subtotal) AS ingreso,
+       COUNT(DISTINCT f.id_pedido_origen) AS pedidos
+FROM dw_dulce_cana.fact_ventas_dc f
+JOIN dw_dulce_cana.dim_cliente_dc dc ON f.id_cliente_dw = dc.id_cliente_dw
+GROUP BY dc.tipo_cliente ORDER BY ingreso DESC;</pre></div>
+                </details>
+                <p class="dsh-insight" id="insight-3"></p>
+            </section>
+
+            <!-- ============ D4 — PEDIDOS ============ -->
+            <section class="dsh-panel" id="p4">
+                <div class="dsh-objective"><b>Objetivo gerencial:</b> dar visibilidad al estado operativo de los pedidos y al medio de cobro, para gestión logística y de cobranza.</div>
+
+                <div class="dsh-kpi-row">
+                    <div class="dsh-kpi"><div class="k-label">Pedidos entregados</div><div class="k-value" id="k4-1-value" style="color:var(--dsh-good)">—</div><div class="k-sub" id="k4-1-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Pedidos pendientes</div><div class="k-value" id="k4-2-value">—</div><div class="k-sub" id="k4-2-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Método de pago líder</div><div class="k-value" id="k4-3-value" style="font-size:16px">—</div><div class="k-sub" id="k4-3-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Valor en proceso</div><div class="k-value" id="k4-4-value">—</div><div class="k-sub" id="k4-4-sub"></div></div>
+                </div>
+
+                <div class="dsh-two-col">
+                    <div class="dsh-card">
+                        <h3>Pedidos por estado</h3>
+                        <div class="card-sub">Conteo de pedidos únicos</div>
+                        <div class="dsh-donut-wrap">
+                            <svg width="150" height="150" viewBox="0 0 150 150" id="chart-donutEstado"></svg>
+                            <div class="dsh-legend" id="legend-estado"></div>
+                        </div>
+                    </div>
+                    <div class="dsh-card">
+                        <h3>Ingreso por método de pago</h3>
+                        <div class="card-sub">Suma de subtotal de venta</div>
+                        <div class="dsh-bars" id="chart-metodoPago"></div>
+                    </div>
+                </div>
+                <details class="dsh-evidence"><summary>Ver consultas SQL usadas (evidencia MCP)</summary>
+                    <div class="inner"><pre class="dsh-sql">SELECT estado_pedido, COUNT(DISTINCT id_pedido_origen) AS pedidos, SUM(subtotal) AS valor
+FROM dw_dulce_cana.fact_ventas_dc GROUP BY estado_pedido ORDER BY valor DESC;
+
+SELECT metodo_pago, SUM(subtotal) AS valor, COUNT(DISTINCT id_pedido_origen) AS pedidos
+FROM dw_dulce_cana.fact_ventas_dc GROUP BY metodo_pago ORDER BY valor DESC;</pre></div>
+                </details>
+                <p class="dsh-insight" id="insight-4"></p>
+            </section>
+
+            <!-- ============ D5 — PROVEEDORES Y PRODUCCIÓN ============ -->
+            <section class="dsh-panel" id="p5">
+                <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el desempeño de proveedores y lotes de producción para asegurar la trazabilidad y continuidad del abastecimiento.</div>
+
+                <div class="dsh-kpi-row">
+                    <div class="dsh-kpi"><div class="k-label">Proveedor líder</div><div class="k-value" id="k5-1-value" style="font-size:16px">—</div><div class="k-sub" id="k5-1-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Concentración top 3 proveedores</div><div class="k-value" id="k5-2-value">—</div><div class="k-sub" id="k5-2-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Lotes finalizados</div><div class="k-value" id="k5-3-value">—</div><div class="k-sub" id="k5-3-sub"></div></div>
+                    <div class="dsh-kpi"><div class="k-label">Producción total registrada</div><div class="k-value" id="k5-4-value">—</div><div class="k-sub" id="k5-4-sub"></div></div>
+                </div>
+
+                <div class="dsh-card">
+                    <h3>Ingreso por proveedor</h3>
+                    <div class="card-sub">Ventas atribuidas a través del lote de origen</div>
+                    <div class="dsh-bars" id="chart-proveedor"></div>
+                </div>
+                <details class="dsh-evidence"><summary>Ver consultas SQL usadas (evidencia MCP)</summary>
+                    <div class="inner"><pre class="dsh-sql">SELECT dpv.nombre, dpv.sector, SUM(f.subtotal) AS ingreso
+FROM dw_dulce_cana.fact_ventas_dc f
+JOIN dw_dulce_cana.dim_proveedor_dc dpv ON f.id_proveedor_dw = dpv.id_proveedor_dw
+GROUP BY dpv.nombre, dpv.sector ORDER BY ingreso DESC;
+
+SELECT estado, COUNT(*) AS n, SUM(cantidad_kg) AS kg_total
+FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
+                </details>
+                <p class="dsh-insight" id="insight-5"></p>
+            </section>
+
+            <footer class="dsh-footer">
+                <span>Fuente: data warehouse <code>dw_dulce_cana</code> (esquema estrella derivado de <code>dulcecana_db</code>) · consultado en vivo vía MCP (Model Context Protocol) desde este mismo programa</span>
+                <span id="hl-timestamp"></span>
+            </footer>
+        </div>
+    </div>
+</main>
+
+<script th:inline="none">
+    (function () {
+      var fmt = function (n) { return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+      var fmtInt = function (n) { return Number(n).toLocaleString('en-US'); };
+      var pct = function (part, total) { return total ? ((part / total) * 100).toFixed(1) : '0.0'; };
+      var MESES = { Enero:'Ene', Febrero:'Feb', Marzo:'Mar', Abril:'Abr', Mayo:'May', Junio:'Jun',
+        Julio:'Jul', Agosto:'Ago', Septiembre:'Sep', Octubre:'Oct', Noviembre:'Nov', Diciembre:'Dic' };
+
+      // ---- Tabs ----
+      var tabs = document.querySelectorAll('.dsh-tab');
+      var panels = document.querySelectorAll('.dsh-panel');
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          tabs.forEach(function (t) { t.setAttribute('aria-selected', 'false'); });
+          panels.forEach(function (p) { p.classList.remove('active'); });
+          tab.setAttribute('aria-selected', 'true');
+          document.getElementById(tab.dataset.target).classList.add('active');
+        });
+      });
+
+      // ---- Theme toggle (in-memory only, scoped to this widget) ----
+      var themeBtn = document.getElementById('themeToggle');
+      var dshRoot = document.getElementById('dshRoot');
+      var current = null;
+      themeBtn.addEventListener('click', function () {
+        current = current === 'dark' ? 'light' : (current === 'light' ? null : 'dark');
+        if (current) { dshRoot.setAttribute('data-theme', current); } else { dshRoot.removeAttribute('data-theme'); }
+        themeBtn.textContent = current === 'dark' ? 'Modo claro' : (current === 'light' ? 'Modo automático' : 'Modo oscuro');
+      });
+
+      function renderBars(containerId, items, opts) {
+        opts = opts || {};
+        var el = document.getElementById(containerId);
+        el.innerHTML = '';
+        var max = Math.max.apply(null, items.map(function (d) { return d.value; }));
+        items.forEach(function (d) {
+          var pctW = Math.max((d.value / max) * 100, 1.5);
+          var row = document.createElement('div');
+          row.className = 'bar-row';
+          var color = d.color || 'var(--dsh-s1)';
+          row.innerHTML =
+            '<div class="b-label">' + d.label + '</div>' +
+            '<div class="bar-track"><div class="bar-fill" style="width:' + pctW + '%; background:' + color + '">' +
+              '<span class="tip">' + d.label + ' — ' + fmt(d.value) + (d.extra ? ' · ' + d.extra : '') + '</span>' +
+            '</div></div>' +
+            '<div class="b-value">' + fmt(d.value) + '</div>';
+          el.appendChild(row);
+        });
+      }
+
+      function renderLine(containerId, points) {
+        var svg = document.getElementById(containerId);
+        svg.innerHTML = '';
+        var W = 900, H = 260, ML = 44, MR = 30, MT = 14, MB = 30;
+        var plotW = W - ML - MR, plotH = H - MT - MB;
+        var maxV = Math.max.apply(null, points.map(function (d) { return d.v; }));
+        var x = function (i) { return ML + (i / (points.length - 1)) * plotW; };
+        var y = function (v) { return MT + plotH - (v / maxV) * plotH; };
+        var ns = 'http://www.w3.org/2000/svg';
+        function el(tag, attrs) { var e = document.createElementNS(ns, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+        for (var s = 0; s <= 4; s++) {
+          var v = (maxV / 4) * s, gy = y(v);
+          svg.appendChild(el('line', { x1: ML, x2: W - MR, y1: gy, y2: gy, class: 'lc-grid' }));
+          var t = el('text', { x: 4, y: gy + 3, class: 'lc-axis-label' });
+          t.textContent = '$' + Math.round(v).toLocaleString('en-US');
+          svg.appendChild(t);
+        }
+        points.forEach(function (d, i) {
+          if (i % 2 !== 0) return;
+          var t = el('text', { x: x(i), y: H - 8, class: 'lc-axis-label', 'text-anchor': 'middle' });
+          t.textContent = d.label;
+          svg.appendChild(t);
+        });
+        var pts = points.map(function (d, i) { return x(i) + ',' + y(d.v); }).join(' ');
+        var area = pts + ' ' + x(points.length - 1) + ',' + y(0) + ' ' + x(0) + ',' + y(0);
+        svg.appendChild(el('polygon', { points: area, class: 'lc-area' }));
+        svg.appendChild(el('polyline', { points: pts, class: 'lc-line' }));
+        points.forEach(function (d, i) {
+          var hit = el('circle', { cx: x(i), cy: y(d.v), r: 9, class: 'lc-dot-hit' });
+          var title = el('title', {}); title.textContent = d.full + ': ' + fmt(d.v);
+          hit.appendChild(title);
+          svg.appendChild(hit);
+          svg.appendChild(el('circle', { cx: x(i), cy: y(d.v), r: 3, class: 'lc-dot' }));
+        });
+      }
+
+      function renderDonut(svgId, legendId, data) {
+        var total = data.reduce(function (a, d) { return a + d.value; }, 0);
+        var svg = document.getElementById(svgId);
+        svg.innerHTML = '';
+        var ns = 'http://www.w3.org/2000/svg';
+        var r = 60, cx = 75, cy = 75, sw = 20, circ = 2 * Math.PI * r, offset = 0;
+        var bg = document.createElementNS(ns, 'circle');
+        bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', r);
+        bg.setAttribute('fill', 'none'); bg.setAttribute('stroke', 'var(--dsh-surface-2)'); bg.setAttribute('stroke-width', sw);
+        svg.appendChild(bg);
+        var group = document.createElementNS(ns, 'g');
+        group.setAttribute('transform', 'rotate(-90 ' + cx + ' ' + cy + ')');
+        svg.appendChild(group);
+        data.forEach(function (d) {
+          var frac = d.value / total, dash = frac * circ;
+          var c = document.createElementNS(ns, 'circle');
+          c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
+          c.setAttribute('fill', 'none'); c.setAttribute('stroke', d.color); c.setAttribute('stroke-width', sw);
+          c.setAttribute('stroke-dasharray', dash + ' ' + (circ - dash));
+          c.setAttribute('stroke-dashoffset', -offset);
+          var title = document.createElementNS(ns, 'title');
+          title.textContent = d.label + ': ' + fmtInt(d.value) + ' (' + (frac * 100).toFixed(1) + '%)';
+          c.appendChild(title);
+          group.appendChild(c);
+          offset += dash;
+        });
+        var cv = document.createElementNS(ns, 'text');
+        cv.setAttribute('x', cx); cv.setAttribute('y', cy - 2); cv.setAttribute('text-anchor', 'middle');
+        cv.setAttribute('class', 'donut-center-total'); cv.setAttribute('fill', 'var(--dsh-ink)'); cv.textContent = fmtInt(total);
+        svg.appendChild(cv);
+        var cl = document.createElementNS(ns, 'text');
+        cl.setAttribute('x', cx); cl.setAttribute('y', cy + 14); cl.setAttribute('text-anchor', 'middle');
+        cl.setAttribute('class', 'donut-center-label'); cl.setAttribute('fill', 'var(--dsh-ink-mute)'); cl.textContent = 'PEDIDOS';
+        svg.appendChild(cl);
+        var legend = document.getElementById(legendId);
+        legend.innerHTML = '';
+        data.forEach(function (d) {
+          var frac = ((d.value / total) * 100).toFixed(1);
+          var row = document.createElement('div');
+          row.className = 'legend-row';
+          row.innerHTML = '<span class="legend-dot" style="background:' + d.color + '"></span>' +
+            '<span class="l-label">' + d.label + '</span><span class="l-value">' + fmtInt(d.value) + ' · ' + frac + '%</span>';
+          legend.appendChild(row);
+        });
+      }
+
+      function set(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+
+      function renderAll(data) {
+        var CAT = ['var(--dsh-s1)','var(--dsh-s2)','var(--dsh-s3)','var(--dsh-s4)','var(--dsh-s5)','var(--dsh-s6)','var(--dsh-s7)','var(--dsh-s8)'];
+        var totalIngreso = Number(data.totalIngreso), totalPedidos = Number(data.totalPedidos);
+
+        set('hl-ingreso', fmt(totalIngreso));
+        set('hl-pedidos', fmtInt(totalPedidos));
+        var mFirst = data.mensual[0], mLast = data.mensual[data.mensual.length - 1];
+        set('hl-periodo', (MESES[mFirst.nombreMes]||mFirst.nombreMes) + ' ' + mFirst.anio + ' – ' + (MESES[mLast.nombreMes]||mLast.nombreMes) + ' ' + mLast.anio);
+        document.getElementById('hl-timestamp').textContent = 'Consultado: ' + new Date().toLocaleString('es-EC');
+
+        // ---- D1: productos ----
+        var porTipo = {};
+        data.productos.forEach(function (p) { porTipo[p.tipoProducto] = (porTipo[p.tipoProducto] || 0) + Number(p.ingreso); });
+        var tipos = Object.keys(porTipo).map(function (k) { return { label: k, value: porTipo[k] }; }).sort(function (a, b) { return b.value - a.value; });
+        tipos.forEach(function (t, i) { t.color = CAT[i]; t.extra = pct(t.value, totalIngreso) + '%'; });
+        renderBars('chart-tipoProducto', tipos);
+        set('k1-1-label', 'Línea líder — ' + tipos[0].label);
+        set('k1-1-value', fmt(tipos[0].value));
+        set('k1-1-sub', pct(tipos[0].value, totalIngreso) + '% del ingreso total');
+        if (tipos[1]) { set('k1-2-label', tipos[1].label); set('k1-2-value', fmt(tipos[1].value)); set('k1-2-sub', pct(tipos[1].value, totalIngreso) + '% del ingreso total'); }
+        if (tipos[2]) { set('k1-3-label', tipos[2].label); set('k1-3-value', fmt(tipos[2].value)); set('k1-3-sub', pct(tipos[2].value, totalIngreso) + '% del ingreso total'); }
+        var topProducto = data.productos[0];
+        set('k1-4-value', topProducto.nombreProducto);
+        set('k1-4-sub', fmt(topProducto.ingreso) + ' · ' + fmtInt(topProducto.unidades) + ' unidades');
+        var tbody1 = document.querySelector('#tbl-productos tbody');
+        data.productos.slice(0, 5).forEach(function (p) {
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + p.nombreProducto + '</td><td>' + p.tipoProducto + '</td><td class="num">' + fmt(p.ingreso) + '</td><td class="num">' + fmtInt(p.unidades) + '</td>';
+          tbody1.appendChild(tr);
+        });
+        set('insight-1', '<b>Lectura:</b> ' + tipos[0].label + ' genera ' + Math.round(pct(tipos[0].value, totalIngreso) / 10) + ' de cada 10 dólares vendidos. El precio promedio de venta se compara aquí en vivo contra el precio de lista de cada producto — útil para detectar descuentos no planeados.');
+
+        // ---- D2: mensual ----
+        var pts = data.mensual.map(function (m, i) {
+          var label = (MESES[m.nombreMes] || m.nombreMes.slice(0,3)) + (m.anio !== mFirst.anio ? "'" + String(m.anio).slice(2) : '');
+          return { label: label, full: m.nombreMes + ' ' + m.anio, v: Number(m.ingreso) };
+        });
+        renderLine('chart-mensual', pts);
+        set('k2-1-value', fmt(totalIngreso));
+        set('k2-1-sub', data.mensual.length + ' meses (' + pts[0].full + ' – ' + pts[pts.length-1].full + ')');
+        var pico = data.mensual.reduce(function (a, b) { return Number(b.ingreso) > Number(a.ingreso) ? b : a; });
+        set('k2-2-value', (MESES[pico.nombreMes]||pico.nombreMes) + ' ' + pico.anio);
+        set('k2-2-sub', fmt(pico.ingreso));
+        if (data.mensual.length >= 2) {
+          var last = data.mensual[data.mensual.length - 1], prev = data.mensual[data.mensual.length - 2];
+          var variacion = ((Number(last.ingreso) - Number(prev.ingreso)) / Number(prev.ingreso)) * 100;
+          var dotColor = variacion < 0 ? 'var(--dsh-serious)' : 'var(--dsh-good)';
+          set('k2-3-value', '<span style="display:inline-block;width:9px;height:9px;background:' + dotColor + ';margin-right:7px;border-radius:2px"></span>' + (variacion >= 0 ? '+' : '') + variacion.toFixed(1) + '%');
+          set('k2-3-sub', (MESES[last.nombreMes]||last.nombreMes) + ' ' + last.anio + ' vs. ' + (MESES[prev.nombreMes]||prev.nombreMes) + ' ' + prev.anio);
+        }
+        set('k2-4-value', fmt(totalIngreso / totalPedidos));
+        set('insight-2', '<b>Lectura:</b> el ingreso mensual se mueve entre ' + fmt(Math.min.apply(null, data.mensual.map(function(m){return Number(m.ingreso);}))) + ' y ' + fmt(pico.ingreso) + ' a lo largo del periodo. El mes más reciente es ' + (MESES[mLast.nombreMes]||mLast.nombreMes) + ' ' + mLast.anio + ' — conviene revisarlo junto al equipo comercial si se aleja del promedio.');
+
+        // ---- D3: clientes ----
+        var tiposCliente = data.clientesPorTipo.map(function (c, i) { return { label: c.tipoCliente, value: Number(c.ingreso), pedidos: Number(c.pedidos), color: CAT[i % CAT.length] }; });
+        renderBars('chart-tipoCliente', tiposCliente);
+        set('k3-1-value', tiposCliente[0].label);
+        set('k3-1-sub', fmt(tiposCliente[0].value) + ' · ' + pct(tiposCliente[0].value, totalIngreso) + '% del total');
+        var top5Sum = data.topClientes.reduce(function (a, c) { return a + Number(c.ingreso); }, 0);
+        set('k3-2-value', pct(top5Sum, totalIngreso) + '%');
+        set('k3-2-sub', 'del ingreso, en solo ' + data.topClientes.length + ' clientes');
+        var act = data.clientesActivos;
+        set('k3-3-value', pct(act.activos, act.total) + '%');
+        set('k3-3-sub', act.activos + ' de ' + act.total + ' clientes');
+        var mejorTicket = tiposCliente.reduce(function (a, b) { return (b.value / b.pedidos) > (a.value / a.pedidos) ? b : a; });
+        set('k3-4-value', mejorTicket.label);
+        set('k3-4-sub', fmt(mejorTicket.value / mejorTicket.pedidos) + ' por pedido');
+        var tbody3 = document.querySelector('#tbl-clientes tbody');
+        data.topClientes.forEach(function (c) {
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + c.nombre + '</td><td class="num">' + fmt(c.ingreso) + '</td><td class="num">' + pct(c.ingreso, totalIngreso) + '%</td>';
+          tbody3.appendChild(tr);
+        });
+        set('insight-3', '<b>Lectura:</b> el segmento ' + mejorTicket.label + ' compra en tickets más grandes que el resto — apoya diferenciar condiciones comerciales por volumen. ' + pct(act.activos, act.total) + '% de la cartera de clientes está activa.');
+
+        // ---- D4: pedidos ----
+        var estados = {};
+        data.estadoPedido.forEach(function (e) { estados[e.estado] = e; });
+        var entregado = estados['Entregado'] || { pedidos: 0, valor: 0 };
+        var pendiente = estados['Pendiente'] || { pedidos: 0, valor: 0 };
+        var enProceso = estados['En Proceso'] || { pedidos: 0, valor: 0 };
+        set('k4-1-value', pct(entregado.pedidos, totalPedidos) + '%');
+        set('k4-1-sub', fmtInt(entregado.pedidos) + ' de ' + fmtInt(totalPedidos) + ' pedidos');
+        set('k4-2-value', '<span style="display:inline-block;width:9px;height:9px;background:var(--dsh-serious);margin-right:7px;border-radius:2px"></span>' + fmtInt(pendiente.pedidos));
+        set('k4-2-sub', fmt(pendiente.valor) + ' sin entregar');
+        var metodoTop = data.metodoPago[0];
+        set('k4-3-value', metodoTop.metodo);
+        set('k4-3-sub', pct(metodoTop.valor, totalIngreso) + '% del ingreso');
+        set('k4-4-value', '<span style="display:inline-block;width:9px;height:9px;background:var(--dsh-warning);margin-right:7px;border-radius:2px"></span>' + fmt(enProceso.valor));
+        set('k4-4-sub', fmtInt(enProceso.pedidos) + ' pedidos');
+        renderDonut('chart-donutEstado', 'legend-estado', [
+          { label: 'Entregado', value: entregado.pedidos, color: 'var(--dsh-good)' },
+          { label: 'En proceso', value: enProceso.pedidos, color: 'var(--dsh-warning)' },
+          { label: 'Pendiente', value: pendiente.pedidos, color: 'var(--dsh-serious)' }
+        ]);
+        renderBars('chart-metodoPago', data.metodoPago.map(function (m, i) { return { label: m.metodo, value: Number(m.valor), color: CAT[i] }; }));
+        set('insight-4', '<b>Lectura:</b> ' + pct(pendiente.pedidos + enProceso.pedidos, totalPedidos) + '% de los pedidos aún no llega a "Entregado". ' + metodoTop.metodo + ' es el método de cobro principal — el equipo de cobranza puede priorizar su seguimiento.');
+
+        // ---- D5: proveedores ----
+        var provs = data.proveedores.map(function (p) { return { label: p.nombre, value: Number(p.ingreso) }; });
+        var top8 = provs.slice(0, 8).map(function (p) { return { label: p.label, value: p.value, color: 'var(--dsh-s1)' }; });
+        var restoSum = provs.slice(8).reduce(function (a, p) { return a + p.value; }, 0);
+        var restoN = provs.length - 8;
+        var barsProv = top8.slice();
+        if (restoN > 0) barsProv.push({ label: 'Otros (' + restoN + ' proveedores)', value: restoSum, color: 'var(--dsh-ink-mute)' });
+        renderBars('chart-proveedor', barsProv);
+        set('k5-1-value', provs[0].label);
+        set('k5-1-sub', fmt(provs[0].value) + ' · ' + pct(provs[0].value, totalIngreso) + '% del total');
+        var top3Sum = provs.slice(0, 3).reduce(function (a, p) { return a + p.value; }, 0);
+        set('k5-2-value', pct(top3Sum, totalIngreso) + '%');
+        set('k5-2-sub', 'del ingreso, en 3 de ' + provs.length + ' proveedores');
+        var lotesMap = {};
+        data.lotes.forEach(function (l) { lotesMap[l.estado] = l; });
+        var finalizado = lotesMap['Finalizado'] || { n: 0, kgTotal: 0 };
+        var proceso = lotesMap['Proceso'] || { n: 0, kgTotal: 0 };
+        var totalLotes = Number(finalizado.n) + Number(proceso.n);
+        var totalKg = Number(finalizado.kgTotal || 0) + Number(proceso.kgTotal || 0);
+        set('k5-3-value', pct(finalizado.n, totalLotes) + '%');
+        set('k5-3-sub', finalizado.n + ' de ' + totalLotes + ' lotes de producción');
+        set('k5-4-value', fmtInt(Math.round(totalKg)) + ' kg');
+        set('k5-4-sub', fmtInt(Math.round(finalizado.kgTotal || 0)) + ' kg ya finalizados');
+        set('insight-5', '<b>Lectura:</b> el top 3 de proveedores concentra ' + pct(top3Sum, totalIngreso) + '% del ingreso — riesgo de concentración a vigilar. ' + proceso.n + ' lote(s) siguen "En proceso" (' + fmtInt(Math.round(proceso.kgTotal || 0)) + ' kg), el resto ya está finalizado.');
+
+        document.getElementById('dshLoading').style.display = 'none';
+        document.getElementById('dshContent').style.display = 'block';
+      }
+
+      fetch('/api/dashboards/resumen')
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(renderAll)
+        .catch(function (err) {
+          document.getElementById('dshLoading').textContent = 'No se pudieron cargar los datos (' + err.message + '). Verifica que la app esté conectada a dulcecana_db.';
+        });
+    })();
+</script>
+</body>
+</html>
