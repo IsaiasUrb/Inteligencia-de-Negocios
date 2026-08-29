@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Cliente · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+  <h1 th:text="${cliente.idCliente == null} ? 'Nuevo cliente' : 'Editar cliente'"></h1>
+  <p class="subtitle">Completa los datos del cliente</p>
+
+  <div class="card">
+    <form class="form-grid" th:action="@{/clientes/guardar}" th:object="${cliente}" method="post">
+      <input type="hidden" th:field="*{idCliente}">
+
+      <div class="field full">
+        <label for="nombre">Nombre *</label>
+        <input type="text" id="nombre" th:field="*{nombre}">
+        <div class="error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></div>
+      </div>
+
+      <div class="field">
+        <label for="tipoCliente">Tipo de cliente</label>
+        <select id="tipoCliente" th:field="*{tipoCliente}">
+          <option value="">— Selecciona —</option>
+          <option value="Cafetería">Cafetería</option>
+          <option value="Distribuidor">Distribuidor</option>
+          <option value="Mayorista">Mayorista</option>
+          <option value="Mercado">Mercado</option>
+          <option value="Minorista">Minorista</option>
+          <option value="Panadería">Panadería</option>
+          <option value="Supermercado">Supermercado</option>
+          <option value="Tienda">Tienda</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="ciudad">Ciudad</label>
+        <input type="text" id="ciudad" th:field="*{ciudad}">
+      </div>
+
+      <div class="field">
+        <label for="telefono">Teléfono</label>
+        <input type="text" id="telefono" th:field="*{telefono}">
+      </div>
+
+      <div class="field">
+        <label for="correo">Correo</label>
+        <input type="email" id="correo" th:field="*{correo}">
+      </div>
+
+      <div class="field">
+        <label for="fechaRegistro">Fecha de registro</label>
+        <input type="date" id="fechaRegistro" th:field="*{fechaRegistro}">
+      </div>
+
+      <div class="field checkbox">
+        <input type="checkbox" id="activo" th:field="*{activo}">
+        <label for="activo">Cliente activo</label>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn" type="submit">Guardar</button>
+        <a class="btn secondary" href="/clientes">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</main>
+</body>
+</html>

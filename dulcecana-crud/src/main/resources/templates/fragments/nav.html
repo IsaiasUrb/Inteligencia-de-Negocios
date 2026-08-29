@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside class="sidebar" th:fragment="nav">
+  <a class="sidebar-brand" href="/">
+    <img class="sidebar-logo" src="/css/images/logo.png" alt="Dulce Caña">
+    <span class="sidebar-title">Dulce Caña<br><small>CRUD</small></span>
+  </a>
+  <nav class="mainnav">
+    <a href="/proveedores" th:classappend="${currentUri != null and currentUri.startsWith('/proveedores')} ? 'active'">Proveedores</a>
+    <a href="/lotes" th:classappend="${currentUri != null and currentUri.startsWith('/lotes')} ? 'active'">Lotes de producción</a>
+    <a href="/productos" th:classappend="${currentUri != null and currentUri.startsWith('/productos')} ? 'active'">Productos</a>
+    <a href="/clientes" th:classappend="${currentUri != null and currentUri.startsWith('/clientes')} ? 'active'">Clientes</a>
+    <a href="/pedidos" th:classappend="${currentUri != null and currentUri.startsWith('/pedidos')} ? 'active'">Pedidos</a>
+    <a href="/detalles" th:classappend="${currentUri != null and currentUri.startsWith('/detalles')} ? 'active'">Detalle de pedidos</a>
+  </nav>
+</aside>
+</body>
+</html>

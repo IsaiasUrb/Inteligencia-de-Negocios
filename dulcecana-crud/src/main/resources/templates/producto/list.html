@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Productos · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+  <div class="actions-bar">
+    <div>
+      <h1>Productos</h1>
+      <p class="subtitle">Panela, azúcar, melaza y su lote de origen</p>
+    </div>
+    <a class="btn" href="/productos/nuevo">+ Nuevo producto</a>
+  </div>
+
+  <div class="card">
+    <table th:if="${not #lists.isEmpty(productos)}">
+      <thead>
+        <tr>
+          <th>ID</th><th>Nombre</th><th>Tipo</th><th>Precio</th><th>Stock</th><th>Lote</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="p : ${productos}">
+          <td th:text="${p.idProducto}"></td>
+          <td th:text="${p.nombreProducto}"></td>
+          <td><span class="badge" th:text="${p.tipoProducto}"></span></td>
+          <td th:text="${p.precio}"></td>
+          <td th:text="${p.stock}"></td>
+          <td th:text="${p.lote != null ? '#' + p.lote.idLote : '—'}"></td>
+          <td class="actions">
+            <a class="btn secondary small" th:href="@{/productos/editar/{id}(id=${p.idProducto})}">Editar</a>
+            <form th:action="@{/productos/eliminar/{id}(id=${p.idProducto})}" method="post"
+                  onsubmit="return confirm('¿Eliminar este producto?');">
+              <button class="btn danger small" type="submit">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty-state" th:if="${#lists.isEmpty(productos)}">No hay productos registrados todavía.</div>
+  </div>
+</main>
+</body>
+</html>

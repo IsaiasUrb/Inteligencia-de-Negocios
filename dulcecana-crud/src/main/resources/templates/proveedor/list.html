@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Proveedores · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+  <div class="actions-bar">
+    <div>
+      <h1>Proveedores</h1>
+      <p class="subtitle">Fincas y proveedores registrados</p>
+    </div>
+    <a class="btn" href="/proveedores/nuevo">+ Nuevo proveedor</a>
+  </div>
+
+  <div class="card">
+    <table th:if="${not #lists.isEmpty(proveedores)}">
+      <thead>
+        <tr>
+          <th>ID</th><th>Nombre</th><th>Finca</th><th>Teléfono</th><th>Sector</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="p : ${proveedores}">
+          <td th:text="${p.idProveedor}"></td>
+          <td th:text="${p.nombre}"></td>
+          <td th:text="${p.finca}"></td>
+          <td th:text="${p.telefono}"></td>
+          <td th:text="${p.sector}"></td>
+          <td class="actions">
+            <a class="btn secondary small" th:href="@{/proveedores/editar/{id}(id=${p.idProveedor})}">Editar</a>
+            <form th:action="@{/proveedores/eliminar/{id}(id=${p.idProveedor})}" method="post"
+                  onsubmit="return confirm('¿Eliminar este proveedor?');">
+              <button class="btn danger small" type="submit">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty-state" th:if="${#lists.isEmpty(proveedores)}">No hay proveedores registrados todavía.</div>
+  </div>
+</main>
+</body>
+</html>

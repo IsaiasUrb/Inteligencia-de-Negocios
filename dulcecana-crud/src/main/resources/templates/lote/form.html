@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Lote de producción · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+  <h1 th:text="${lote.idLote == null} ? 'Nuevo lote' : 'Editar lote'"></h1>
+  <p class="subtitle">Completa los datos del lote de producción</p>
+
+  <div class="card">
+    <form class="form-grid" th:action="@{/lotes/guardar}" th:object="${lote}" method="post">
+      <input type="hidden" th:field="*{idLote}">
+
+      <div class="field">
+        <label for="fechaProduccion">Fecha de producción *</label>
+        <input type="date" id="fechaProduccion" th:field="*{fechaProduccion}">
+        <div class="error" th:if="${#fields.hasErrors('fechaProduccion')}" th:errors="*{fechaProduccion}"></div>
+      </div>
+
+      <div class="field">
+        <label for="cantidadKg">Cantidad (kg)</label>
+        <input type="number" step="0.01" id="cantidadKg" th:field="*{cantidadKg}">
+      </div>
+
+      <div class="field">
+        <label for="estado">Estado</label>
+        <select id="estado" th:field="*{estado}">
+          <option value="">— Selecciona —</option>
+          <option value="Proceso">Proceso</option>
+          <option value="Finalizado">Finalizado</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="proveedor">Proveedor</label>
+        <select id="proveedor" th:field="*{proveedor}">
+          <option value="">— Sin asignar —</option>
+          <option th:each="p : ${proveedores}" th:value="${p.idProveedor}" th:text="${p.nombre}"></option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn" type="submit">Guardar</button>
+        <a class="btn secondary" href="/lotes">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</main>
+</body>
+</html>

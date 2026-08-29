@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Proveedor · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+  <h1 th:text="${proveedor.idProveedor == null} ? 'Nuevo proveedor' : 'Editar proveedor'"></h1>
+  <p class="subtitle">Completa los datos del proveedor</p>
+
+  <div class="card">
+    <form class="form-grid" th:action="@{/proveedores/guardar}" th:object="${proveedor}" method="post">
+      <input type="hidden" th:field="*{idProveedor}">
+
+      <div class="field full">
+        <label for="nombre">Nombre *</label>
+        <input type="text" id="nombre" th:field="*{nombre}">
+        <div class="error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></div>
+      </div>
+
+      <div class="field">
+        <label for="finca">Finca</label>
+        <input type="text" id="finca" th:field="*{finca}">
+      </div>
+
+      <div class="field">
+        <label for="telefono">Teléfono</label>
+        <input type="text" id="telefono" th:field="*{telefono}">
+      </div>
+
+      <div class="field full">
+        <label for="sector">Sector</label>
+        <input type="text" id="sector" th:field="*{sector}">
+      </div>
+
+      <div class="form-actions">
+        <button class="btn" type="submit">Guardar</button>
+        <a class="btn secondary" href="/proveedores">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Dulce Caña · CRUD</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+  <h1>Panel de administración</h1>
+  <p class="subtitle">dulcecana_db · elige una tabla para ver, crear, editar o eliminar registros</p>
+
+  <div class="home-grid">
+    <a class="tile" href="/proveedores">
+      <div class="tile-title">Proveedores</div>
+      <div class="tile-desc">Fincas y proveedores de caña</div>
+    </a>
+    <a class="tile" href="/lotes">
+      <div class="tile-title">Lotes de producción</div>
+      <div class="tile-desc">Lotes producidos por cada proveedor</div>
+    </a>
+    <a class="tile" href="/productos">
+      <div class="tile-title">Productos</div>
+      <div class="tile-desc">Panela, azúcar, melaza y su lote de origen</div>
+    </a>
+    <a class="tile" href="/clientes">
+      <div class="tile-title">Clientes</div>
+      <div class="tile-desc">Clientes registrados</div>
+    </a>
+    <a class="tile" href="/pedidos">
+      <div class="tile-title">Pedidos</div>
+      <div class="tile-desc">Pedidos realizados por los clientes</div>
+    </a>
+    <a class="tile" href="/detalles">
+      <div class="tile-title">Detalle de pedidos</div>
+      <div class="tile-desc">Productos y cantidades de cada pedido</div>
+    </a>
+  </div>
+</main>
+</body>
+</html>

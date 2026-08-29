@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Pedidos · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+  <div class="actions-bar">
+    <div>
+      <h1>Pedidos</h1>
+      <p class="subtitle">Pedidos realizados por los clientes</p>
+    </div>
+    <a class="btn" href="/pedidos/nuevo">+ Nuevo pedido</a>
+  </div>
+
+  <div class="card">
+    <table th:if="${not #lists.isEmpty(pedidos)}">
+      <thead>
+        <tr>
+          <th>ID</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Método de pago</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="p : ${pedidos}">
+          <td th:text="${p.idPedido}"></td>
+          <td th:text="${p.fechaPedido}"></td>
+          <td th:text="${p.cliente != null ? p.cliente.nombre : '—'}"></td>
+          <td th:text="${p.total}"></td>
+          <td><span class="badge" th:text="${p.estado}"></span></td>
+          <td th:text="${p.metodoPago}"></td>
+          <td class="actions">
+            <a class="btn secondary small" th:href="@{/pedidos/editar/{id}(id=${p.idPedido})}">Editar</a>
+            <form th:action="@{/pedidos/eliminar/{id}(id=${p.idPedido})}" method="post"
+                  onsubmit="return confirm('¿Eliminar este pedido?');">
+              <button class="btn danger small" type="submit">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty-state" th:if="${#lists.isEmpty(pedidos)}">No hay pedidos registrados todavía.</div>
+  </div>
+</main>
+</body>
+</html>
