@@ -210,3 +210,7 @@
   .dsh-root .dsh-kpi-row, .dsh-root .dsh-headline { grid-template-columns: 1fr 1fr; }
   .dsh-root .bar-row { grid-template-columns: 96px 1fr auto; }
 }
+/* Esta pagina no debe heredar el max-width:1000px global de style.css */
+main {
+  max-width: none;
+}
