@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Nuevo pedido · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <style>
+    .lineas-tabla { width:100%; border-collapse: collapse; margin: 12px 0; }
+    .lineas-tabla th, .lineas-tabla td { padding: 8px; text-align: left; }
+    .lineas-tabla input, .lineas-tabla select { width: 100%; }
+    .lineas-tabla td.subtotal-col { font-family: monospace; text-align: right; white-space: nowrap; }
+    .lineas-tabla td.accion-col { text-align: center; width: 40px; }
+    .total-row td { font-weight: bold; text-align: right; padding-top: 12px; }
+    .btn-quitar { background: none; border: none; color: #b23; cursor: pointer; font-size: 16px; }
+    .btn-agregar { margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+  <h1>Nuevo pedido</h1>
+  <p class="subtitle">Registra el pedido y sus productos en un solo paso</p>
+
+  <div class="card">
+    <div class="error" th:if="${errorForm != null}" th:text="${errorForm}" style="margin-bottom:16px"></div>
+
+    <form class="form-grid" th:action="@{/pedidos/guardar-nuevo}" th:object="${form}" method="post" id="pedidoForm">
+
+      <div class="field">
+        <label for="fechaPedido">Fecha del pedido *</label>
+        <input type="date" id="fechaPedido" th:field="*{fechaPedido}">
+      </div>
+
+      <div class="field">
+        <label for="idCliente">Cliente *</label>
+        <select id="idCliente" th:field="*{idCliente}">
+          <option value="">— Selecciona —</option>
+          <option th:each="c : ${clientes}" th:value="${c.idCliente}" th:text="${c.nombre}"></option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="estado">Estado</label>
+        <select id="estado" th:field="*{estado}">
+          <option value="Pendiente">Pendiente</option>
+          <option value="En Proceso">En Proceso</option>
+          <option value="Entregado">Entregado</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="metodoPago">Método de pago</label>
+        <select id="metodoPago" th:field="*{metodoPago}">
+          <option value="">— Selecciona —</option>
+          <option value="Efectivo">Efectivo</option>
+          <option value="Tarjeta">Tarjeta</option>
+          <option value="Transferencia">Transferencia</option>
+          <option value="Crédito">Crédito</option>
+        </select>
+      </div>
+
+      <div class="field full">
+        <label>Productos *</label>
+        <table class="lineas-tabla" id="lineasTabla">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio unitario</th>
+              <th>Subtotal</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="lineasBody">
+            <tr class="linea-row" th:each="l, stat : *{lineas}">
+              <td>
+                <select th:name="'lineas[' + ${stat.index} + '].idProducto'" class="sel-producto">
+                  <option value="">— Selecciona —</option>
+                  <option th:each="p : ${productos}"
+                          th:value="${p.idProducto}"
+                          th:text="${p.nombreProducto}"
+                          th:attr="data-precio=${p.precio}"></option>
+                </select>
+              </td>
+              <td><input type="number" min="1" th:name="'lineas[' + ${stat.index} + '].cantidad'" class="inp-cantidad"></td>
+              <td><input type="number" step="0.01" min="0" th:name="'lineas[' + ${stat.index} + '].precioUnitario'" class="inp-precio"></td>
+              <td class="subtotal-col"><span class="lbl-subtotal">$0.00</span></td>
+              <td class="accion-col"><button type="button" class="btn-quitar" onclick="quitarLinea(this)">✕</button></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="3">Total</td>
+              <td colspan="2" id="totalGeneral">$0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+        <button type="button" class="btn secondary btn-agregar" onclick="agregarLinea()">+ Agregar producto</button>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn" type="submit">Guardar pedido</button>
+        <a class="btn secondary" href="/pedidos">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script th:inline="none">
+(function () {
+  var productosOptions = document.querySelector('.sel-producto').innerHTML;
+  var indice = document.querySelectorAll('.linea-row').length;
+
+  function fmt(n) { return '$' + Number(n || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+
+  function recalcularFila(row) {
+    var cantidad = parseFloat(row.querySelector('.inp-cantidad').value) || 0;
+    var precio = parseFloat(row.querySelector('.inp-precio').value) || 0;
+    var subtotal = cantidad * precio;
+    row.querySelector('.lbl-subtotal').textContent = fmt(subtotal);
+    recalcularTotal();
+  }
+
+  function recalcularTotal() {
+    var total = 0;
+    document.querySelectorAll('.linea-row').forEach(function (row) {
+      var cantidad = parseFloat(row.querySelector('.inp-cantidad').value) || 0;
+      var precio = parseFloat(row.querySelector('.inp-precio').value) || 0;
+      total += cantidad * precio;
+    });
+    document.getElementById('totalGeneral').textContent = fmt(total);
+  }
+
+  function ligarEventos(row) {
+    var selProducto = row.querySelector('.sel-producto');
+    var inpPrecio = row.querySelector('.inp-precio');
+    var inpCantidad = row.querySelector('.inp-cantidad');
+
+    selProducto.addEventListener('change', function () {
+      var opt = selProducto.options[selProducto.selectedIndex];
+      var precio = opt ? opt.getAttribute('data-precio') : null;
+      if (precio && !inpPrecio.value) { inpPrecio.value = precio; }
+      recalcularFila(row);
+    });
+    inpPrecio.addEventListener('input', function () { recalcularFila(row); });
+    inpCantidad.addEventListener('input', function () { recalcularFila(row); });
+  }
+
+  window.agregarLinea = function () {
+    var tbody = document.getElementById('lineasBody');
+    var tr = document.createElement('tr');
+    tr.className = 'linea-row';
+    tr.innerHTML =
+      '<td><select name="lineas[' + indice + '].idProducto" class="sel-producto">' + productosOptions + '</select></td>' +
+      '<td><input type="number" min="1" name="lineas[' + indice + '].cantidad" class="inp-cantidad"></td>' +
+      '<td><input type="number" step="0.01" min="0" name="lineas[' + indice + '].precioUnitario" class="inp-precio"></td>' +
+      '<td class="subtotal-col"><span class="lbl-subtotal">$0.00</span></td>' +
+      '<td class="accion-col"><button type="button" class="btn-quitar" onclick="quitarLinea(this)">✕</button></td>';
+    tbody.appendChild(tr);
+    ligarEventos(tr);
+    indice++;
+  };
+
+  window.quitarLinea = function (btn) {
+    var filas = document.querySelectorAll('.linea-row');
+    if (filas.length <= 1) { return; }
+    btn.closest('tr').remove();
+    reindexarFilas();
+    recalcularTotal();
+  };
+
+  function reindexarFilas() {
+    document.querySelectorAll('.linea-row').forEach(function (row, i) {
+      row.querySelector('.sel-producto').setAttribute('name', 'lineas[' + i + '].idProducto');
+      row.querySelector('.inp-cantidad').setAttribute('name', 'lineas[' + i + '].cantidad');
+      row.querySelector('.inp-precio').setAttribute('name', 'lineas[' + i + '].precioUnitario');
+    });
+    indice = document.querySelectorAll('.linea-row').length;
+  }
+
+  document.querySelectorAll('.linea-row').forEach(function (row) { ligarEventos(row); });
+})();
+</script>
+</body>
+</html>
