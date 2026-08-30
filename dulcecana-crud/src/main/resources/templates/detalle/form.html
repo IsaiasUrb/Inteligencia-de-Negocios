@@ -12,6 +12,7 @@
   <p class="subtitle">Asocia un producto y una cantidad a un pedido</p>
 
   <div class="card">
+    <div class="error" th:if="${errorPedido != null}" th:text="${errorPedido}" style="margin-bottom:16px"></div>
     <form class="form-grid" th:action="@{/detalles/guardar}" th:object="${detalle}" method="post">
       <input type="hidden" th:field="*{idDetalle}">
 

@@ -2,6 +2,7 @@ package com.dulcecana.crud.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ public class Pedido {
     private Integer idPedido;
 
     @NotNull(message = "La fecha del pedido es obligatoria")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     @Column(name = "fecha_pedido", nullable = false)
     private LocalDate fechaPedido;
 

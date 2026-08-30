@@ -5,6 +5,7 @@ import com.dulcecana.crud.repository.DetallePedidoRepository;
 import com.dulcecana.crud.repository.PedidoRepository;
 import com.dulcecana.crud.repository.ProductoRepository;
 import jakarta.validation.Valid;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -55,7 +56,16 @@ public class DetallePedidoWebController {
             model.addAttribute("productos", productoRepository.findAll());
             return "detalle/form";
         }
-        repository.save(detalle);
+        try {
+            repository.save(detalle);
+        } catch (DataIntegrityViolationException ex) {
+            model.addAttribute("pedidos", pedidoRepository.findAll());
+            model.addAttribute("productos", productoRepository.findAll());
+            model.addAttribute("errorPedido",
+                "No se puede guardar: el pedido seleccionado todavia no tiene un cliente asignado. " +
+                "Ve a \"Pedidos\", edita ese pedido y asignale un cliente, y luego vuelve a intentar aqui.");
+            return "detalle/form";
+        }
         return "redirect:/detalles";
     }
 
