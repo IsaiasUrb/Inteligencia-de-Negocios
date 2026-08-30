@@ -42,6 +42,7 @@
           <option value="En Proceso">En Proceso</option>
           <option value="Entregado">Entregado</option>
         </select>
+        <div class="error" th:if="${errorEstado != null}" th:text="${errorEstado}"></div>
       </div>
 
       <div class="field full">

@@ -4,6 +4,7 @@ import com.dulcecana.crud.entity.Pedido;
 import com.dulcecana.crud.repository.ClienteRepository;
 import com.dulcecana.crud.repository.PedidoRepository;
 import jakarta.validation.Valid;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -47,7 +48,16 @@ public class PedidoWebController {
             model.addAttribute("clientes", clienteRepository.findAll());
             return "pedido/form";
         }
-        repository.save(pedido);
+        try {
+            repository.save(pedido);
+        } catch (DataIntegrityViolationException ex) {
+            model.addAttribute("clientes", clienteRepository.findAll());
+            model.addAttribute("errorEstado",
+                "No se puede guardar: un pedido no puede quedar en estado \"" + pedido.getEstado() +
+                "\" si todavia no tiene ningun producto en el detalle. Guardalo como \"Pendiente\", " +
+                "agrega sus productos en \"Detalle de pedidos\", y luego cambia el estado.");
+            return "pedido/form";
+        }
         return "redirect:/pedidos";
     }
 
