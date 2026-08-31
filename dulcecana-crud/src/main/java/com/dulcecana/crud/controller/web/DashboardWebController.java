@@ -15,4 +15,14 @@ public class DashboardWebController {
     public String factVentas() {
         return "dashboards/fact-ventas";
     }
+
+    @GetMapping("/dashboards/produccion")
+    public String produccion() {
+        return "dashboards/produccion";
+    }
+
+    @GetMapping("/dashboards/facturacion")
+    public String facturacion() {
+        return "dashboards/facturacion";
+    }
 }

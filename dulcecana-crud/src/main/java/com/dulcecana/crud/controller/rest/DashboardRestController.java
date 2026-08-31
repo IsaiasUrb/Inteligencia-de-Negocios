@@ -112,4 +112,75 @@ public class DashboardRestController {
 
         return out;
     }
+
+    @GetMapping("/produccion")
+    public Map<String, Object> produccion() {
+        Map<String, Object> out = new LinkedHashMap<>();
+
+        Map<String, Object> totales = jdbcTemplate.queryForMap(
+                "SELECT SUM(fp.costo_total) AS \"costoTotal\", " +
+                        "SUM(fp.costo_materia_prima) AS \"costoMateriaPrima\", " +
+                        "SUM(fp.costo_mano_obra) AS \"costoManoObra\", " +
+                        "SUM(fp.costo_indirecto) AS \"costoIndirecto\", " +
+                        "ROUND(AVG(fp.rendimiento_pct), 2) AS \"rendimientoPromedio\" " +
+                        "FROM dw_dulce_cana.fact_produccion_dc fp");
+        Map<String, Object> rentabilidadTotales = jdbcTemplate.queryForMap(
+                "SELECT SUM(utilidad_bruta) AS \"utilidadBruta\", SUM(ingreso_atribuido) AS \"ingresoAtribuido\" " +
+                        "FROM dw_dulce_cana.vw_rentabilidad_lote");
+        out.putAll(totales);
+        out.putAll(rentabilidadTotales);
+
+        out.put("costosMensuales", jdbcTemplate.queryForList(
+                "SELECT anio, mes, nombre_mes AS \"nombreMes\", costo_materia_prima AS \"costoMateriaPrima\", " +
+                        "costo_mano_obra AS \"costoManoObra\", costo_indirecto AS \"costoIndirecto\", " +
+                        "costo_total AS \"costoTotal\" " +
+                        "FROM dw_dulce_cana.vw_costos_mensuales ORDER BY anio, mes"));
+
+        out.put("rentabilidadLote", jdbcTemplate.queryForList(
+                "SELECT id_lote_origen AS \"idLote\", fecha_produccion AS \"fechaProduccion\", proveedor, " +
+                        "cantidad_kg_producida AS \"cantidadKg\", costo_total AS \"costoTotal\", " +
+                        "ingreso_atribuido AS \"ingresoAtribuido\", utilidad_bruta AS \"utilidadBruta\", " +
+                        "margen_utilidad_pct AS \"margenUtilidadPct\", rendimiento_pct AS \"rendimientoPct\" " +
+                        "FROM dw_dulce_cana.vw_rentabilidad_lote ORDER BY fecha_produccion DESC"));
+
+        return out;
+    }
+
+    @GetMapping("/facturacion")
+    public Map<String, Object> facturacion() {
+        Map<String, Object> out = new LinkedHashMap<>();
+
+        Map<String, Object> inventarioTotales = jdbcTemplate.queryForMap(
+                "SELECT SUM(valor_inventario) AS \"valorInventario\", " +
+                        "COUNT(*) FILTER (WHERE stock < 20) AS \"productosStockBajo\" " +
+                        "FROM public.vw_inventario");
+        Map<String, Object> facturaTotales = jdbcTemplate.queryForMap(
+                "SELECT SUM(total_facturado) AS \"totalFacturado\", " +
+                        "COUNT(*) FILTER (WHERE estado_pago = 'Pendiente') AS \"facturasPendientes\" " +
+                        "FROM public.factura");
+        out.putAll(inventarioTotales);
+        out.putAll(facturaTotales);
+
+        out.put("inventario", jdbcTemplate.queryForList(
+                "SELECT nombre_producto AS \"nombreProducto\", tipo_producto AS \"tipoProducto\", " +
+                        "stock, valor_inventario AS \"valorInventario\" " +
+                        "FROM public.vw_inventario ORDER BY stock DESC"));
+
+        out.put("facturacionMensual", jdbcTemplate.queryForList(
+                "SELECT EXTRACT(YEAR FROM fecha_emision)::int AS anio, EXTRACT(MONTH FROM fecha_emision)::int AS mes, " +
+                        "TO_CHAR(fecha_emision, 'TMMonth') AS \"nombreMes\", " +
+                        "SUM(subtotal) AS subtotal, SUM(monto_iva) AS \"montoIva\", SUM(total_facturado) AS total " +
+                        "FROM public.factura GROUP BY 1, 2, 3 ORDER BY 1, 2"));
+
+        out.put("facturasPendientesDetalle", jdbcTemplate.queryForList(
+                "SELECT f.numero_factura AS \"numeroFactura\", f.fecha_emision AS \"fechaEmision\", " +
+                        "c.nombre AS cliente, f.total_facturado AS \"totalFacturado\", f.estado_pago AS \"estadoPago\" " +
+                        "FROM public.factura f " +
+                        "JOIN public.pedido p ON p.id_pedido = f.id_pedido " +
+                        "JOIN public.cliente c ON c.id_cliente = p.id_cliente " +
+                        "WHERE f.estado_pago = 'Pendiente' " +
+                        "ORDER BY f.fecha_emision DESC LIMIT 10"));
+
+        return out;
+    }
 }

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Costos y Rentabilidad de Producción · Dashboards · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="stylesheet" th:href="@{/css/dashboards.css}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+  <style>
+    .dsh-root .dsh-topbar { border-bottom: none; margin-bottom: 14px; }
+    .dsh-back { font-size: 12.5px; color: var(--dsh-ink-soft); text-decoration: none; }
+    .dsh-back:hover { color: var(--dsh-ink); }
+    .dsh-root .bar-track-stacked { display: flex; overflow: hidden; }
+    .dsh-root .bar-seg { height: 100%; min-width: 0; }
+    .dsh-root .dsh-mini-legend { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+    .dsh-root .dsh-mini-legend span.dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+    .dsh-root .dsh-mini-legend .item { font-size: 12px; color: var(--dsh-ink-soft); }
+    .dsh-root .div-row { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 10px; }
+    .dsh-root .div-row .b-label { font-size: 11.5px; color: var(--dsh-ink-soft); text-align: right; white-space: nowrap; }
+    .dsh-root .div-row .b-value { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; min-width: 78px; color: var(--dsh-ink); }
+    .dsh-root .div-track { position: relative; height: 14px; background: var(--dsh-surface-2); }
+    .dsh-root .div-track::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--dsh-ink-mute); }
+    .dsh-root .div-fill { position: absolute; top: 0; height: 100%; min-width: 1.5px; }
+    .dsh-root .div-fill.pos { left: 50%; background: var(--dsh-good); border-radius: 0 3px 3px 0; }
+    .dsh-root .div-fill.neg { right: 50%; background: var(--dsh-serious); border-radius: 3px 0 0 3px; }
+  </style>
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+<div class="dsh-root" id="dshRoot">
+
+  <div class="dsh-topbar">
+    <div>
+      <h1>Costos y Rentabilidad de Producción</h1>
+      <div class="dsh-meta">
+        Materias primas, costos de producción, utilidades y rendimiento por lote · datos en vivo desde <b>dw_dulce_cana</b><br>
+        <a class="dsh-back" href="/dashboards">&larr; Volver a Dashboards gerenciales</a>
+      </div>
+    </div>
+    <button class="dsh-theme-btn" id="themeToggle" type="button">Modo oscuro</button>
+  </div>
+
+  <div class="dsh-objective">
+    <b>Objetivo gerencial:</b> conocer cuánto cuesta realmente producir cada lote (materia prima, mano de obra e indirectos),
+    qué rendimiento se obtiene de la materia prima principal (caña de azúcar) y qué utilidad deja cada lote frente al ingreso que generó.
+  </div>
+
+  <div id="dshLoading" style="padding:30px 2px; font-size:13px; color:var(--dsh-ink-soft)">Cargando datos desde dw_dulce_cana…</div>
+
+  <div id="dshContent" style="display:none">
+
+    <div class="dsh-kpi-row">
+      <div class="dsh-kpi"><div class="k-label">Costo total de producción</div><div class="k-value" id="k-1-value">—</div><div class="k-sub" id="k-1-sub"></div></div>
+      <div class="dsh-kpi"><div class="k-label">Utilidad bruta</div><div class="k-value" id="k-2-value">—</div><div class="k-sub" id="k-2-sub"></div></div>
+      <div class="dsh-kpi"><div class="k-label">Margen de utilidad</div><div class="k-value" id="k-3-value">—</div><div class="k-sub" id="k-3-sub"></div></div>
+      <div class="dsh-kpi"><div class="k-label">Rendimiento promedio</div><div class="k-value" id="k-4-value">—</div><div class="k-sub" id="k-4-sub"></div></div>
+    </div>
+
+    <div class="dsh-card">
+      <h3>Desglose de costos por mes</h3>
+      <div class="card-sub">Costo de materia prima, mano de obra e indirectos, sumados por mes de producción</div>
+      <div class="dsh-mini-legend">
+        <span class="item"><span class="dot" style="background:var(--dsh-s1)"></span>Materia prima</span>
+        <span class="item"><span class="dot" style="background:var(--dsh-s2)"></span>Mano de obra</span>
+        <span class="item"><span class="dot" style="background:var(--dsh-s4)"></span>Indirectos</span>
+      </div>
+      <div class="dsh-bars" id="chart-costosMensuales"></div>
+    </div>
+
+    <div class="dsh-card">
+      <h3>Utilidad bruta por lote</h3>
+      <div class="card-sub">Ingreso atribuido al lote (por sus ventas) menos su costo total de producción · orden cronológico</div>
+      <div class="dsh-bars" id="chart-utilidadLote"></div>
+    </div>
+
+    <details class="dsh-evidence"><summary>Ver tabla — lotes por utilidad bruta</summary>
+      <div class="inner table-scroll"><table class="dsh-table" id="tbl-rentabilidad">
+        <thead><tr><th>Lote</th><th>Fecha</th><th>Proveedor</th><th class="num">Kg producidos</th><th class="num">Costo total</th><th class="num">Ingreso atribuido</th><th class="num">Utilidad bruta</th><th class="num">Rendimiento</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </details>
+    <details class="dsh-evidence"><summary>Ver consultas SQL usadas</summary>
+      <div class="inner"><pre class="dsh-sql">SELECT anio, mes, nombre_mes, costo_materia_prima, costo_mano_obra, costo_indirecto, costo_total
+FROM dw_dulce_cana.vw_costos_mensuales ORDER BY anio, mes;
+
+SELECT id_lote_origen, fecha_produccion, proveedor, cantidad_kg_producida, costo_total,
+       ingreso_atribuido, utilidad_bruta, margen_utilidad_pct, rendimiento_pct
+FROM dw_dulce_cana.vw_rentabilidad_lote ORDER BY fecha_produccion DESC;</pre></div>
+    </details>
+    <p class="dsh-insight" id="insight-1"></p>
+
+    <footer class="dsh-footer">
+      <span>Fuente: <code>dw_dulce_cana.fact_produccion_dc</code> (grano = 1 lote) · <code>GET /api/dashboards/produccion</code></span>
+      <span id="hl-timestamp"></span>
+    </footer>
+  </div>
+</div>
+</main>
+
+<script th:inline="none">
+(function () {
+  var THEME_KEY = 'dsh-theme';
+  var themeBtn = document.getElementById('themeToggle');
+  var dshRoot = document.getElementById('dshRoot');
+  var current = null;
+  try {
+    var storedTheme = localStorage.getItem(THEME_KEY);
+    if (storedTheme === 'dark' || storedTheme === 'light') { current = storedTheme; }
+  } catch (e) { /* localStorage bloqueado: se comporta en memoria, sin romper nada */ }
+  function applyTheme() {
+    if (current) { dshRoot.setAttribute('data-theme', current); } else { dshRoot.removeAttribute('data-theme'); }
+    themeBtn.textContent = current === 'dark' ? 'Modo claro' : (current === 'light' ? 'Modo automático' : 'Modo oscuro');
+  }
+  applyTheme();
+  themeBtn.addEventListener('click', function () {
+    current = current === 'dark' ? 'light' : (current === 'light' ? null : 'dark');
+    try {
+      if (current) { localStorage.setItem(THEME_KEY, current); } else { localStorage.removeItem(THEME_KEY); }
+    } catch (e) { /* localStorage bloqueado: no persiste, pero sigue funcionando en memoria */ }
+    applyTheme();
+  });
+
+  var fmt = function (n) { return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+  var fmtInt = function (n) { return Number(n).toLocaleString('en-US'); };
+  var pct1 = function (n) { return Number(n).toFixed(1) + '%'; };
+
+  function set(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+
+  function renderStackedBars(containerId, items, series) {
+    var el = document.getElementById(containerId);
+    el.innerHTML = '';
+    var maxTotal = Math.max.apply(null, items.map(function (i) { return i.total; })) || 1;
+    items.forEach(function (it) {
+      var segs = series.map(function (s) {
+        var v = it.values[s.key] || 0;
+        var w = (v / maxTotal) * 100;
+        return '<div class="bar-seg" style="width:' + w + '%; background:' + s.color + '" title="' + s.label + ': ' + fmt(v) + '"></div>';
+      }).join('');
+      var row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = '<div class="b-label">' + it.label + '</div>' +
+        '<div class="bar-track bar-track-stacked">' + segs + '</div>' +
+        '<div class="b-value">' + fmt(it.total) + '</div>';
+      el.appendChild(row);
+    });
+  }
+
+  function renderDiverging(containerId, items) {
+    var el = document.getElementById(containerId);
+    el.innerHTML = '';
+    var maxAbs = Math.max.apply(null, items.map(function (i) { return Math.abs(i.value); })) || 1;
+    items.forEach(function (it) {
+      var w = (Math.abs(it.value) / maxAbs) * 50;
+      var isPos = it.value >= 0;
+      var row = document.createElement('div');
+      row.className = 'div-row';
+      row.innerHTML = '<div class="b-label">' + it.label + '</div>' +
+        '<div class="div-track"><div class="div-fill ' + (isPos ? 'pos' : 'neg') + '" style="width:' + w + '%"></div></div>' +
+        '<div class="b-value">' + fmt(it.value) + '</div>';
+      el.appendChild(row);
+    });
+  }
+
+  var MESES = { Enero:'Ene', Febrero:'Feb', Marzo:'Mar', Abril:'Abr', Mayo:'May', Junio:'Jun',
+    Julio:'Jul', Agosto:'Ago', Septiembre:'Sep', Octubre:'Oct', Noviembre:'Nov', Diciembre:'Dic' };
+
+  function renderAll(data) {
+    var costoTotal = Number(data.costoTotal || 0);
+    var utilidadBruta = Number(data.utilidadBruta || 0);
+    var ingresoAtribuido = Number(data.ingresoAtribuido || 0);
+    var margen = ingresoAtribuido > 0 ? (utilidadBruta / ingresoAtribuido) * 100 : 0;
+    var rendimientoPromedio = Number(data.rendimientoPromedio || 0);
+
+    set('k-1-value', fmt(costoTotal));
+    set('k-1-sub', data.rentabilidadLote.length + ' lotes registrados');
+    set('k-2-value', fmt(utilidadBruta));
+    if (document.getElementById('k-2-value')) document.getElementById('k-2-value').style.color = utilidadBruta >= 0 ? 'var(--dsh-good)' : 'var(--dsh-serious)';
+    set('k-2-sub', 'ingreso atribuido: ' + fmt(ingresoAtribuido));
+    set('k-3-value', pct1(margen));
+    set('k-3-sub', 'utilidad bruta / ingreso atribuido');
+    set('k-4-value', pct1(rendimientoPromedio));
+    set('k-4-sub', 'kg producidos / kg de caña consumida');
+
+    var series = [
+      { key: 'costoMateriaPrima', label: 'Materia prima', color: 'var(--dsh-s1)' },
+      { key: 'costoManoObra', label: 'Mano de obra', color: 'var(--dsh-s2)' },
+      { key: 'costoIndirecto', label: 'Indirectos', color: 'var(--dsh-s4)' }
+    ];
+    var itemsMensual = data.costosMensuales.map(function (m) {
+      return {
+        label: (MESES[m.nombreMes] || m.nombreMes.slice(0,3)) + " '" + String(m.anio).slice(2),
+        total: Number(m.costoTotal),
+        values: { costoMateriaPrima: Number(m.costoMateriaPrima), costoManoObra: Number(m.costoManoObra), costoIndirecto: Number(m.costoIndirecto) }
+      };
+    });
+    renderStackedBars('chart-costosMensuales', itemsMensual, series);
+
+    var lotesCron = data.rentabilidadLote.slice().sort(function (a, b) { return new Date(a.fechaProduccion) - new Date(b.fechaProduccion); });
+    renderDiverging('chart-utilidadLote', lotesCron.map(function (l) {
+      return { label: 'Lote ' + l.idLote, value: Number(l.utilidadBruta) };
+    }));
+
+    var tbody = document.querySelector('#tbl-rentabilidad tbody');
+    var topLotes = data.rentabilidadLote.slice().sort(function (a, b) { return Number(b.utilidadBruta) - Number(a.utilidadBruta); }).slice(0, 10);
+    topLotes.forEach(function (l) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + l.idLote + '</td><td>' + l.fechaProduccion + '</td><td>' + l.proveedor + '</td>' +
+        '<td class="num">' + fmtInt(Math.round(l.cantidadKg)) + '</td>' +
+        '<td class="num">' + fmt(l.costoTotal) + '</td>' +
+        '<td class="num">' + fmt(l.ingresoAtribuido) + '</td>' +
+        '<td class="num">' + fmt(l.utilidadBruta) + '</td>' +
+        '<td class="num">' + (l.rendimientoPct != null ? pct1(l.rendimientoPct) : '—') + '</td>';
+      tbody.appendChild(tr);
+    });
+
+    var lotesPositivos = data.rentabilidadLote.filter(function (l) { return Number(l.utilidadBruta) >= 0; }).length;
+    set('insight-1', '<b>Lectura:</b> ' + lotesPositivos + ' de ' + data.rentabilidadLote.length +
+      ' lotes tienen utilidad bruta positiva. La mayor parte del costo se concentra en materia prima — priorizar negociación de precio de la caña de azúcar y mejora del rendimiento tiene el mayor impacto en el margen.');
+
+    document.getElementById('hl-timestamp').textContent = 'Consultado: ' + new Date().toLocaleString('es-EC');
+    document.getElementById('dshLoading').style.display = 'none';
+    document.getElementById('dshContent').style.display = 'block';
+  }
+
+  fetch('/api/dashboards/produccion')
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(renderAll)
+    .catch(function (err) {
+      document.getElementById('dshLoading').textContent = 'No se pudieron cargar los datos (' + err.message + '). Verifica que la app esté conectada a dulcecana_db.';
+    });
+})();
+</script>
+</body>
+</html>
