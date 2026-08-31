@@ -215,6 +215,28 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
 
 <script th:inline="none">
 (function () {
+  // ---- Theme toggle (persistido en localStorage bajo "dsh-theme", compartido entre paginas de Dashboards) ----
+  var THEME_KEY = 'dsh-theme';
+  var themeBtn = document.getElementById('themeToggle');
+  var dshRoot = document.getElementById('dshRoot');
+  var current = null;
+  try {
+    var storedTheme = localStorage.getItem(THEME_KEY);
+    if (storedTheme === 'dark' || storedTheme === 'light') { current = storedTheme; }
+  } catch (e) { /* localStorage bloqueado: se comporta en memoria, sin romper nada */ }
+  function applyTheme() {
+    if (current) { dshRoot.setAttribute('data-theme', current); } else { dshRoot.removeAttribute('data-theme'); }
+    themeBtn.textContent = current === 'dark' ? 'Modo claro' : (current === 'light' ? 'Modo automático' : 'Modo oscuro');
+  }
+  applyTheme();
+  themeBtn.addEventListener('click', function () {
+    current = current === 'dark' ? 'light' : (current === 'light' ? null : 'dark');
+    try {
+      if (current) { localStorage.setItem(THEME_KEY, current); } else { localStorage.removeItem(THEME_KEY); }
+    } catch (e) { /* localStorage bloqueado: no persiste, pero sigue funcionando en memoria */ }
+    applyTheme();
+  });
+
   var fmt = function (n) { return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
   var fmtInt = function (n) { return Number(n).toLocaleString('en-US'); };
   var pct = function (part, total) { return total ? ((part / total) * 100).toFixed(1) : '0.0'; };
@@ -231,16 +253,6 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
       tab.setAttribute('aria-selected', 'true');
       document.getElementById(tab.dataset.target).classList.add('active');
     });
-  });
-
-  // ---- Theme toggle (in-memory only, scoped to this widget) ----
-  var themeBtn = document.getElementById('themeToggle');
-  var dshRoot = document.getElementById('dshRoot');
-  var current = null;
-  themeBtn.addEventListener('click', function () {
-    current = current === 'dark' ? 'light' : (current === 'light' ? null : 'dark');
-    if (current) { dshRoot.setAttribute('data-theme', current); } else { dshRoot.removeAttribute('data-theme'); }
-    themeBtn.textContent = current === 'dark' ? 'Modo claro' : (current === 'light' ? 'Modo automático' : 'Modo oscuro');
   });
 
   function renderBars(containerId, items, opts) {
