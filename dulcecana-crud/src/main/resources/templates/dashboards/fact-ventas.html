@@ -8,8 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
   <style>
-    .fv-fk { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--dsh-accent-deep); background: var(--dsh-accent-wash); padding: 1px 5px; border-radius: 3px; width: fit-content; margin-bottom: 3px; }
+    .fv-fk { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--dsh-accent-deep); background: var(--dsh-accent-wash); padding: 1px 5px; border-radius: 3px; width: fit-content; margin-bottom: 3px; }
     .fv-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 0; line-height: 1.35; }
+    /* Esta pagina no tiene la franja dsh-headline que en index.html separa visualmente
+       el borde inferior del topbar; sin ella el borde queda pegado al cuadro
+       "Que es esto" (y casi blanco en modo oscuro), asi que se quita aqui. */
+    .dsh-root .dsh-topbar { border-bottom: none; margin-bottom: 14px; }
     .fv-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 22px 0 16px; }
     .fv-toolbar label { font-size: 12.5px; color: var(--dsh-ink-soft); }
     .fv-toolbar select { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; padding: 5px 8px; border: 1.5px solid var(--dsh-ink); background: var(--dsh-surface); color: var(--dsh-ink); }
@@ -31,6 +35,7 @@
         <a class="fv-back" href="/dashboards">&larr; Volver a Dashboards gerenciales</a>
       </div>
     </div>
+    <button class="dsh-theme-btn" id="themeToggle" type="button">Modo oscuro</button>
   </div>
 
   <div class="dsh-objective">
@@ -91,6 +96,16 @@
   var cardWrap = document.getElementById('fvCardWrap');
   var tbody = document.querySelector('#fv-table tbody');
   var count = document.getElementById('fv-count');
+
+  // ---- Theme toggle (mismo mecanismo que dashboards/index.html) ----
+  var themeBtn = document.getElementById('themeToggle');
+  var dshRoot = document.getElementById('dshRoot');
+  var currentTheme = null;
+  themeBtn.addEventListener('click', function () {
+    currentTheme = currentTheme === 'dark' ? 'light' : (currentTheme === 'light' ? null : 'dark');
+    if (currentTheme) { dshRoot.setAttribute('data-theme', currentTheme); } else { dshRoot.removeAttribute('data-theme'); }
+    themeBtn.textContent = currentTheme === 'dark' ? 'Modo claro' : (currentTheme === 'light' ? 'Modo automático' : 'Modo oscuro');
+  });
 
   function load(limit) {
     loading.style.display = 'block';
