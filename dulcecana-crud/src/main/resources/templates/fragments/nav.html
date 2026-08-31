@@ -13,7 +13,7 @@
     <a href="/clientes" th:classappend="${currentUri != null and currentUri.startsWith('/clientes')} ? 'active'">Clientes</a>
     <a href="/pedidos" th:classappend="${currentUri != null and currentUri.startsWith('/pedidos')} ? 'active'">Pedidos</a>
     <a href="/detalles" th:classappend="${currentUri != null and currentUri.startsWith('/detalles')} ? 'active'">Detalle de pedidos</a>
-    <a href="/dashboards" th:classappend="${currentUri != null and currentUri.startsWith('/dashboards')} ? 'active'">Dashboards</a>
+    <a href="/dashboards" th:classappend="${currentUri != null and currentUri.startsWith('/dashboards') and !currentUri.startsWith('/dashboards/fact-ventas')} ? 'active'">Dashboards</a>
     <a href="/dashboards/fact-ventas" th:classappend="${currentUri != null and currentUri.startsWith('/dashboards/fact-ventas')} ? 'active'">Tabla de hechos</a>
   </nav>
 </aside>
