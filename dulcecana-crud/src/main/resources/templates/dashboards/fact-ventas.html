@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
   <style>
-    .fv-fk { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--dsh-accent-deep); background: var(--dsh-accent-wash); padding: 2px 6px; border-radius: 3px; }
+    .fv-fk { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--dsh-accent-deep); background: var(--dsh-accent-wash); padding: 1px 5px; border-radius: 3px; width: fit-content; margin-bottom: 3px; }
+    .fv-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 0; line-height: 1.35; }
     .fv-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 22px 0 16px; }
     .fv-toolbar label { font-size: 12.5px; color: var(--dsh-ink-soft); }
     .fv-toolbar select { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; padding: 5px 8px; border: 1.5px solid var(--dsh-ink); background: var(--dsh-surface); color: var(--dsh-ink); }
@@ -42,8 +43,8 @@
   <div class="fv-toolbar">
     <label for="fv-limit">Filas a mostrar:</label>
     <select id="fv-limit">
-      <option value="25">25</option>
-      <option value="50" selected>50</option>
+      <option value="25" selected>25</option>
+      <option value="50">50</option>
       <option value="100">100</option>
       <option value="200">200</option>
     </select>
@@ -57,19 +58,12 @@
       <thead>
         <tr>
           <th>ID venta</th>
-          <th>ID pedido origen</th>
-          <th class="fv-fk">fk_fecha</th>
           <th>Fecha</th>
-          <th class="fv-fk">fk_cliente</th>
           <th>Cliente</th>
-          <th class="fv-fk">fk_producto</th>
           <th>Producto</th>
-          <th class="fv-fk">fk_proveedor</th>
           <th>Proveedor</th>
-          <th class="fv-fk">fk_lote</th>
-          <th>Estado lote</th>
+          <th>Lote</th>
           <th class="num">Cantidad</th>
-          <th class="num">Precio unit.</th>
           <th class="num">Subtotal</th>
           <th>Estado pedido</th>
           <th>Método pago</th>
@@ -105,23 +99,22 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         tbody.innerHTML = '';
+        var cell = function (fk, value) {
+          return '<td><div class="fv-cell"><span class="fv-fk">' + fk + '</span>' + value + '</div></td>';
+        };
         (data.filas || []).forEach(function (f) {
+          var loteBadgeClass = f.loteEstado === 'Finalizado' ? 'good' : 'warn';
+          var loteCell = '<td><div class="fv-cell"><span class="fv-fk">' + f.fkLote + '</span>' +
+            '<span class="dsh-badge ' + loteBadgeClass + '">' + (f.loteEstado || '—') + '</span></div></td>';
           var tr = document.createElement('tr');
           tr.innerHTML =
             '<td>' + f.idVenta + '</td>' +
-            '<td>' + f.idPedidoOrigen + '</td>' +
-            '<td class="fv-fk">' + f.fkFecha + '</td>' +
-            '<td>' + f.fecha + '</td>' +
-            '<td class="fv-fk">' + f.fkCliente + '</td>' +
-            '<td>' + f.cliente + '</td>' +
-            '<td class="fv-fk">' + f.fkProducto + '</td>' +
-            '<td>' + f.producto + '</td>' +
-            '<td class="fv-fk">' + f.fkProveedor + '</td>' +
-            '<td>' + f.proveedor + '</td>' +
-            '<td class="fv-fk">' + f.fkLote + '</td>' +
-            '<td>' + (f.loteEstado || '') + '</td>' +
+            cell(f.fkFecha, f.fecha) +
+            cell(f.fkCliente, f.cliente) +
+            cell(f.fkProducto, f.producto) +
+            cell(f.fkProveedor, f.proveedor) +
+            loteCell +
             '<td class="num">' + fmtInt(f.cantidad) + '</td>' +
-            '<td class="num">' + fmtMoney(f.precioUnitario) + '</td>' +
             '<td class="num">' + fmtMoney(f.subtotal) + '</td>' +
             '<td>' + (f.estadoPedido || '') + '</td>' +
             '<td>' + (f.metodoPago || '') + '</td>';
