@@ -10,4 +10,9 @@ public class DashboardWebController {
     public String dashboards() {
         return "dashboards/index";
     }
+
+    @GetMapping("/dashboards/fact-ventas")
+    public String factVentas() {
+        return "dashboards/fact-ventas";
+    }
 }

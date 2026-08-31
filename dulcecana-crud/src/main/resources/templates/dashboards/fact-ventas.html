@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Tabla de hechos · Dashboards · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="stylesheet" th:href="@{/css/dashboards.css}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+  <style>
+    .fv-fk { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--dsh-accent-deep); background: var(--dsh-accent-wash); padding: 2px 6px; border-radius: 3px; }
+    .fv-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 22px 0 16px; }
+    .fv-toolbar label { font-size: 12.5px; color: var(--dsh-ink-soft); }
+    .fv-toolbar select { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; padding: 5px 8px; border: 1.5px solid var(--dsh-ink); background: var(--dsh-surface); color: var(--dsh-ink); }
+    .fv-toolbar .fv-count { font-size: 12px; color: var(--dsh-ink-mute); }
+    .fv-back { font-size: 12.5px; color: var(--dsh-ink-soft); text-decoration: none; }
+    .fv-back:hover { color: var(--dsh-ink); }
+  </style>
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+<div class="dsh-root" id="dshRoot">
+
+  <div class="dsh-topbar">
+    <div>
+      <h1>Tabla de hechos — fact_ventas_dc</h1>
+      <div class="dsh-meta">
+        Esquema estrella <b>dw_dulce_cana</b> · filas crudas (sin agregar), en vivo vía JdbcTemplate<br>
+        <a class="fv-back" href="/dashboards">&larr; Volver a Dashboards gerenciales</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="dsh-objective">
+    <b>Qué es esto:</b> cada fila es una línea de venta real de <code>fact_ventas_dc</code>, la tabla de hechos del data warehouse.
+    Las columnas con fondo verde (<span class="fv-fk">fk_*</span>) son las llaves foráneas hacia las dimensiones
+    (<code>dim_fecha_dc</code>, <code>dim_cliente_dc</code>, <code>dim_producto_dc</code>, <code>dim_proveedor_dc</code>, <code>dim_lote_dc</code>) —
+    junto a cada una se muestra el nombre legible que resulta del JOIN, para evidenciar que es un esquema estrella real y no una tabla plana.
+  </div>
+
+  <div class="fv-toolbar">
+    <label for="fv-limit">Filas a mostrar:</label>
+    <select id="fv-limit">
+      <option value="25">25</option>
+      <option value="50" selected>50</option>
+      <option value="100">100</option>
+      <option value="200">200</option>
+    </select>
+    <span class="fv-count" id="fv-count"></span>
+  </div>
+
+  <div id="fvLoading" style="padding:20px 2px; font-size:13px; color:var(--dsh-ink-soft)">Cargando filas desde dw_dulce_cana…</div>
+
+  <div class="dsh-card table-scroll" id="fvCardWrap" style="display:none">
+    <table class="dsh-table" id="fv-table">
+      <thead>
+        <tr>
+          <th>ID venta</th>
+          <th>ID pedido origen</th>
+          <th class="fv-fk">fk_fecha</th>
+          <th>Fecha</th>
+          <th class="fv-fk">fk_cliente</th>
+          <th>Cliente</th>
+          <th class="fv-fk">fk_producto</th>
+          <th>Producto</th>
+          <th class="fv-fk">fk_proveedor</th>
+          <th>Proveedor</th>
+          <th class="fv-fk">fk_lote</th>
+          <th>Estado lote</th>
+          <th class="num">Cantidad</th>
+          <th class="num">Precio unit.</th>
+          <th class="num">Subtotal</th>
+          <th>Estado pedido</th>
+          <th>Método pago</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <footer class="dsh-footer">
+    <span>Fuente: data warehouse <code>dw_dulce_cana</code> · <code>GET /api/dashboards/fact-ventas?limit=N</code> · solo lectura</span>
+    <span id="fv-timestamp"></span>
+  </footer>
+
+</div>
+</main>
+
+<script th:inline="none">
+(function () {
+  var fmtMoney = function (n) { return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+  var fmtInt = function (n) { return Number(n).toLocaleString('en-US'); };
+
+  var select = document.getElementById('fv-limit');
+  var loading = document.getElementById('fvLoading');
+  var cardWrap = document.getElementById('fvCardWrap');
+  var tbody = document.querySelector('#fv-table tbody');
+  var count = document.getElementById('fv-count');
+
+  function load(limit) {
+    loading.style.display = 'block';
+    cardWrap.style.display = 'none';
+    fetch('/api/dashboards/fact-ventas?limit=' + encodeURIComponent(limit))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        tbody.innerHTML = '';
+        (data.filas || []).forEach(function (f) {
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + f.idVenta + '</td>' +
+            '<td>' + f.idPedidoOrigen + '</td>' +
+            '<td class="fv-fk">' + f.fkFecha + '</td>' +
+            '<td>' + f.fecha + '</td>' +
+            '<td class="fv-fk">' + f.fkCliente + '</td>' +
+            '<td>' + f.cliente + '</td>' +
+            '<td class="fv-fk">' + f.fkProducto + '</td>' +
+            '<td>' + f.producto + '</td>' +
+            '<td class="fv-fk">' + f.fkProveedor + '</td>' +
+            '<td>' + f.proveedor + '</td>' +
+            '<td class="fv-fk">' + f.fkLote + '</td>' +
+            '<td>' + (f.loteEstado || '') + '</td>' +
+            '<td class="num">' + fmtInt(f.cantidad) + '</td>' +
+            '<td class="num">' + fmtMoney(f.precioUnitario) + '</td>' +
+            '<td class="num">' + fmtMoney(f.subtotal) + '</td>' +
+            '<td>' + (f.estadoPedido || '') + '</td>' +
+            '<td>' + (f.metodoPago || '') + '</td>';
+          tbody.appendChild(tr);
+        });
+        count.textContent = (data.filas || []).length + ' fila(s) mostradas (límite ' + data.limit + ')';
+        document.getElementById('fv-timestamp').textContent = 'Consultado: ' + new Date().toLocaleString('es-EC');
+        loading.style.display = 'none';
+        cardWrap.style.display = 'block';
+      })
+      .catch(function (err) {
+        loading.textContent = 'No se pudo cargar la tabla de hechos: ' + err;
+      });
+  }
+
+  select.addEventListener('change', function () { load(select.value); });
+  load(select.value);
+})();
+</script>
+</body>
+</html>

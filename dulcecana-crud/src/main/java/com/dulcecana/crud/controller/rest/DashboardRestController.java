@@ -3,6 +3,7 @@ package com.dulcecana.crud.controller.rest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
@@ -79,6 +80,35 @@ public class DashboardRestController {
         out.put("lotes", jdbcTemplate.queryForList(
                 "SELECT estado, COUNT(*) AS n, SUM(cantidad_kg) AS \"kgTotal\" " +
                         "FROM dw_dulce_cana.dim_lote_dc GROUP BY estado"));
+
+        return out;
+    }
+
+    @GetMapping("/fact-ventas")
+    public Map<String, Object> factVentas(@RequestParam(defaultValue = "50") int limit) {
+        int safeLimit = Math.min(Math.max(limit, 1), 200);
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("limit", safeLimit);
+        out.put("filas", jdbcTemplate.queryForList(
+                "SELECT f.id_venta_dw AS \"idVenta\", f.id_detalle_origen AS \"idDetalleOrigen\", " +
+                        "f.id_pedido_origen AS \"idPedidoOrigen\", " +
+                        "f.id_fecha AS \"fkFecha\", df.fecha AS fecha, " +
+                        "f.id_cliente_dw AS \"fkCliente\", dc.nombre AS cliente, " +
+                        "f.id_producto_dw AS \"fkProducto\", dp.nombre_producto AS producto, " +
+                        "f.id_proveedor_dw AS \"fkProveedor\", dpv.nombre AS proveedor, " +
+                        "f.id_lote_dw AS \"fkLote\", dl.estado AS \"loteEstado\", " +
+                        "f.cantidad AS cantidad, f.precio_unitario AS \"precioUnitario\", f.subtotal AS subtotal, " +
+                        "f.estado_pedido AS \"estadoPedido\", f.metodo_pago AS \"metodoPago\" " +
+                        "FROM dw_dulce_cana.fact_ventas_dc f " +
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "JOIN dw_dulce_cana.dim_cliente_dc dc ON f.id_cliente_dw = dc.id_cliente_dw " +
+                        "JOIN dw_dulce_cana.dim_producto_dc dp ON f.id_producto_dw = dp.id_producto_dw " +
+                        "JOIN dw_dulce_cana.dim_proveedor_dc dpv ON f.id_proveedor_dw = dpv.id_proveedor_dw " +
+                        "JOIN dw_dulce_cana.dim_lote_dc dl ON f.id_lote_dw = dl.id_lote_dw " +
+                        "ORDER BY df.fecha DESC, f.id_venta_dw DESC " +
+                        "LIMIT ?",
+                safeLimit));
 
         return out;
     }
