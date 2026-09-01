@@ -17,6 +17,9 @@
     .dsh-root .dsh-mini-legend span.dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
     .dsh-root .dsh-mini-legend .item { font-size: 12px; color: var(--dsh-ink-soft); }
     .dsh-root .dsh-badge.serious { background: rgba(236,131,90,0.16); color: var(--dsh-serious); }
+    .dsh-root .dsh-badge.partial { background: rgba(250,178,25,0.16); color: #a86a00; }
+    @media (prefers-color-scheme: dark) { .dsh-root:not([data-theme="light"]) .dsh-badge.partial { color: var(--dsh-warning); } }
+    .dsh-root[data-theme="dark"] .dsh-badge.partial { color: var(--dsh-warning); }
   </style>
 </head>
 <body>
@@ -69,7 +72,7 @@
 
     <details class="dsh-evidence"><summary>Ver tabla — últimas facturas pendientes de pago</summary>
       <div class="inner table-scroll"><table class="dsh-table" id="tbl-facturas">
-        <thead><tr><th>N.º factura</th><th>Fecha emisión</th><th>Cliente</th><th class="num">Total</th><th>Estado</th></tr></thead>
+        <thead><tr><th>N.º factura</th><th>Fecha emisión</th><th>Cliente</th><th class="num">Total</th><th class="num">Saldo pendiente</th><th>Estado</th></tr></thead>
         <tbody></tbody>
       </table></div>
     </details>
@@ -82,17 +85,19 @@ SELECT EXTRACT(YEAR FROM fecha_emision) AS anio, EXTRACT(MONTH FROM fecha_emisio
        SUM(subtotal) AS subtotal, SUM(monto_iva) AS monto_iva, SUM(total_facturado) AS total
 FROM public.factura GROUP BY 1, 2, 3 ORDER BY 1, 2;
 
-SELECT f.numero_factura, f.fecha_emision, c.nombre AS cliente, f.total_facturado, f.estado_pago
-FROM public.factura f
+SELECT v.numero_factura, v.fecha_emision, c.nombre AS cliente, v.total_facturado,
+       v.saldo_pendiente, v.estado_pago
+FROM public.vw_cuentas_por_cobrar v
+JOIN public.factura f ON f.id_factura = v.id_factura
 JOIN public.pedido p ON p.id_pedido = f.id_pedido
 JOIN public.cliente c ON c.id_cliente = p.id_cliente
-WHERE f.estado_pago = 'Pendiente'
-ORDER BY f.fecha_emision DESC LIMIT 10;</pre></div>
+WHERE v.estado_pago IN ('Pendiente', 'Parcial')
+ORDER BY v.fecha_emision DESC LIMIT 10;</pre></div>
     </details>
     <p class="dsh-insight" id="insight-1"></p>
 
     <footer class="dsh-footer">
-      <span>Fuente: <code>public.vw_inventario</code> y <code>public.factura</code> · <code>GET /api/dashboards/facturacion</code></span>
+      <span>Fuente: <code>public.vw_inventario</code>, <code>public.factura</code> y <code>public.vw_cuentas_por_cobrar</code> · <code>GET /api/dashboards/facturacion</code></span>
       <span id="hl-timestamp"></span>
     </footer>
   </div>
@@ -181,7 +186,7 @@ ORDER BY f.fecha_emision DESC LIMIT 10;</pre></div>
     set('k-3-value', fmt(totalFacturado));
     set('k-3-sub', 'IVA 15% incluido');
     set('k-4-value', fmtInt(facturasPendientes));
-    set('k-4-sub', 'requieren seguimiento de cobro');
+    set('k-4-sub', 'pendientes + con pago parcial');
 
     var stockSorted = data.inventario.slice().sort(function (a, b) { return Number(b.stock) - Number(a.stock); });
     var CAT = ['var(--dsh-s1)','var(--dsh-s2)','var(--dsh-s3)','var(--dsh-s4)','var(--dsh-s5)','var(--dsh-s6)','var(--dsh-s7)','var(--dsh-s8)'];
@@ -206,15 +211,17 @@ ORDER BY f.fecha_emision DESC LIMIT 10;</pre></div>
 
     var tbody = document.querySelector('#tbl-facturas tbody');
     (data.facturasPendientesDetalle || []).forEach(function (f) {
+      var badgeClass = f.estadoPago === 'Parcial' ? 'partial' : 'serious';
       var tr = document.createElement('tr');
       tr.innerHTML = '<td>' + f.numeroFactura + '</td><td>' + f.fechaEmision + '</td><td>' + f.cliente + '</td>' +
         '<td class="num">' + fmt(f.totalFacturado) + '</td>' +
-        '<td><span class="dsh-badge serious">' + f.estadoPago + '</span></td>';
+        '<td class="num">' + fmt(f.saldoPendiente) + '</td>' +
+        '<td><span class="dsh-badge ' + badgeClass + '">' + f.estadoPago + '</span></td>';
       tbody.appendChild(tr);
     });
 
     set('insight-1', '<b>Lectura:</b> ' + productosStockBajo + ' producto(s) están por debajo de 20 unidades en stock — revisar reposición con el proveedor correspondiente. ' +
-      facturasPendientes + ' factura(s) siguen pendientes de cobro en total — la tabla de detalle muestra las 10 más recientes para dar seguimiento.');
+      facturasPendientes + ' factura(s) siguen con saldo pendiente de cobro (sin pago o con pago parcial) — la tabla de detalle muestra las 10 más recientes, con su saldo real, para dar seguimiento.');
 
     document.getElementById('hl-timestamp').textContent = 'Consultado: ' + new Date().toLocaleString('es-EC');
     document.getElementById('dshLoading').style.display = 'none';

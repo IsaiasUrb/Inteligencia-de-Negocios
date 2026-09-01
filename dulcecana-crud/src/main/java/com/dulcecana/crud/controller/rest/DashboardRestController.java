@@ -156,7 +156,7 @@ public class DashboardRestController {
                         "FROM public.vw_inventario");
         Map<String, Object> facturaTotales = jdbcTemplate.queryForMap(
                 "SELECT SUM(total_facturado) AS \"totalFacturado\", " +
-                        "COUNT(*) FILTER (WHERE estado_pago = 'Pendiente') AS \"facturasPendientes\" " +
+                        "COUNT(*) FILTER (WHERE estado_pago IN ('Pendiente', 'Parcial')) AS \"facturasPendientes\" " +
                         "FROM public.factura");
         out.putAll(inventarioTotales);
         out.putAll(facturaTotales);
@@ -173,13 +173,15 @@ public class DashboardRestController {
                         "FROM public.factura GROUP BY 1, 2, 3 ORDER BY 1, 2"));
 
         out.put("facturasPendientesDetalle", jdbcTemplate.queryForList(
-                "SELECT f.numero_factura AS \"numeroFactura\", f.fecha_emision AS \"fechaEmision\", " +
-                        "c.nombre AS cliente, f.total_facturado AS \"totalFacturado\", f.estado_pago AS \"estadoPago\" " +
-                        "FROM public.factura f " +
+                "SELECT v.numero_factura AS \"numeroFactura\", v.fecha_emision AS \"fechaEmision\", " +
+                        "c.nombre AS cliente, v.total_facturado AS \"totalFacturado\", " +
+                        "v.saldo_pendiente AS \"saldoPendiente\", v.estado_pago AS \"estadoPago\" " +
+                        "FROM public.vw_cuentas_por_cobrar v " +
+                        "JOIN public.factura f ON f.id_factura = v.id_factura " +
                         "JOIN public.pedido p ON p.id_pedido = f.id_pedido " +
                         "JOIN public.cliente c ON c.id_cliente = p.id_cliente " +
-                        "WHERE f.estado_pago = 'Pendiente' " +
-                        "ORDER BY f.fecha_emision DESC LIMIT 10"));
+                        "WHERE v.estado_pago IN ('Pendiente', 'Parcial') " +
+                        "ORDER BY v.fecha_emision DESC LIMIT 10"));
 
         return out;
     }
