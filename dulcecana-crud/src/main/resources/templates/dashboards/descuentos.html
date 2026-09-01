@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Descuentos y Política de Precios · Dashboards · Dulce Caña</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="stylesheet" th:href="@{/css/dashboards.css}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+  <style>
+    .dsh-root .dsh-topbar { border-bottom: none; margin-bottom: 14px; }
+    .dsh-back { font-size: 12.5px; color: var(--dsh-ink-soft); text-decoration: none; }
+    .dsh-back:hover { color: var(--dsh-ink); }
+  </style>
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+<main>
+<div class="dsh-root" id="dshRoot">
+
+  <div class="dsh-topbar">
+    <div>
+      <h1>Descuentos y Política de Precios</h1>
+      <div class="dsh-meta">
+        Descuentos negociados por cliente y su peso en el ingreso · datos en vivo desde <b>dulcecana_db</b><br>
+        <a class="dsh-back" href="/dashboards">&larr; Volver a Dashboards gerenciales</a>
+      </div>
+    </div>
+    <button class="dsh-theme-btn" id="themeToggle" type="button">Modo oscuro</button>
+  </div>
+
+  <div class="dsh-objective">
+    <b>Objetivo gerencial:</b> dar visibilidad a qué clientes tienen un descuento negociado y cuánto representa,
+    para poder discutir la política de precios con criterio — quién lo tiene, cuánto es, y qué peso tienen esos
+    clientes en el ingreso.
+  </div>
+
+  <div id="dshLoading" style="padding:30px 2px; font-size:13px; color:var(--dsh-ink-soft)">Cargando datos desde dulcecana_db…</div>
+
+  <div id="dshContent" style="display:none">
+
+    <div class="dsh-kpi-row">
+      <div class="dsh-kpi"><div class="k-label">Clientes con descuento negociado</div><div class="k-value" id="k-1-value">—</div><div class="k-sub" id="k-1-sub"></div></div>
+      <div class="dsh-kpi"><div class="k-label">Descuento promedio negociado</div><div class="k-value" id="k-2-value">—</div><div class="k-sub" id="k-2-sub"></div></div>
+      <div class="dsh-kpi"><div class="k-label">Descuento más alto</div><div class="k-value" id="k-3-value">—</div><div class="k-sub" id="k-3-sub"></div></div>
+      <div class="dsh-kpi"><div class="k-label">Ingreso histórico de esos clientes</div><div class="k-value" id="k-4-value">—</div><div class="k-sub" id="k-4-sub"></div></div>
+    </div>
+
+    <div class="dsh-card">
+      <h3>Descuento negociado por cliente</h3>
+      <div class="card-sub">Solo clientes con descuento_pct &gt; 0, de mayor a menor</div>
+      <div class="dsh-bars" id="chart-descuentos"></div>
+    </div>
+
+    <details class="dsh-evidence"><summary>Ver tabla — clientes con descuento negociado</summary>
+      <div class="inner table-scroll"><table class="dsh-table" id="tbl-descuentos">
+        <thead><tr><th>Cliente</th><th>Tipo de cliente</th><th class="num">Descuento</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </details>
+    <details class="dsh-evidence"><summary>Ver consultas SQL usadas</summary>
+      <div class="inner"><pre class="dsh-sql">SELECT count(*) FILTER (WHERE descuento_pct > 0) AS clientes_con_descuento, count(*) AS total_clientes
+FROM public.cliente;
+
+SELECT round(avg(descuento_pct), 2) AS descuento_promedio
+FROM public.cliente WHERE descuento_pct > 0;
+
+SELECT nombre, descuento_pct FROM public.cliente ORDER BY descuento_pct DESC LIMIT 1;
+
+SELECT COALESCE(SUM(fv.subtotal), 0) AS ingreso_clientes_descuento
+FROM dw_dulce_cana.fact_ventas_dc fv
+JOIN dw_dulce_cana.dim_cliente_dc dc ON dc.id_cliente_dw = fv.id_cliente_dw
+WHERE dc.descuento_pct > 0;
+
+SELECT id_cliente, nombre, tipo_cliente, descuento_pct
+FROM public.vw_descuentos_cliente;</pre></div>
+    </details>
+    <p class="dsh-insight" id="insight-1"></p>
+
+    <footer class="dsh-footer">
+      <span>Fuente: <code>public.cliente</code> y <code>dw_dulce_cana.dim_cliente_dc</code> · <code>GET /api/dashboards/descuentos</code></span>
+      <span id="hl-timestamp"></span>
+    </footer>
+  </div>
+</div>
+</main>
+
+<script th:inline="none">
+(function () {
+  var THEME_KEY = 'dsh-theme';
+  var themeBtn = document.getElementById('themeToggle');
+  var dshRoot = document.getElementById('dshRoot');
+  var current = null;
+  try {
+    var storedTheme = localStorage.getItem(THEME_KEY);
+    if (storedTheme === 'dark' || storedTheme === 'light') { current = storedTheme; }
+  } catch (e) { /* localStorage bloqueado: se comporta en memoria, sin romper nada */ }
+  function applyTheme() {
+    if (current) { dshRoot.setAttribute('data-theme', current); } else { dshRoot.removeAttribute('data-theme'); }
+    themeBtn.textContent = current === 'dark' ? 'Modo claro' : (current === 'light' ? 'Modo automático' : 'Modo oscuro');
+  }
+  applyTheme();
+  themeBtn.addEventListener('click', function () {
+    current = current === 'dark' ? 'light' : (current === 'light' ? null : 'dark');
+    try {
+      if (current) { localStorage.setItem(THEME_KEY, current); } else { localStorage.removeItem(THEME_KEY); }
+    } catch (e) { /* localStorage bloqueado: no persiste, pero sigue funcionando en memoria */ }
+    applyTheme();
+  });
+
+  var fmt = function (n) { return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+  var pct1 = function (n) { return Number(n).toFixed(1) + '%'; };
+
+  function set(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+
+  function renderBarsPct(containerId, items) {
+    var el = document.getElementById(containerId);
+    el.innerHTML = '';
+    var max = Math.max.apply(null, items.map(function (d) { return d.value; })) || 1;
+    items.forEach(function (d) {
+      var pctW = Math.max((d.value / max) * 100, 1.5);
+      var row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML =
+        '<div class="b-label">' + d.label + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + pctW + '%; background:' + (d.color || 'var(--dsh-s1)') + '">' +
+          '<span class="tip">' + d.label + ' — ' + pct1(d.value) + '</span>' +
+        '</div></div>' +
+        '<div class="b-value">' + pct1(d.value) + '</div>';
+      el.appendChild(row);
+    });
+  }
+
+  function renderAll(data) {
+    var clientesConDescuento = Number(data.clientesConDescuento || 0);
+    var totalClientes = Number(data.totalClientes || 0);
+    var descuentoPromedio = Number(data.descuentoPromedio || 0);
+    var ingresoClientesDescuento = Number(data.ingresoClientesDescuento || 0);
+    var pctClientes = totalClientes ? ((clientesConDescuento / totalClientes) * 100).toFixed(0) : '0';
+
+    set('k-1-value', clientesConDescuento + ' de ' + totalClientes);
+    set('k-1-sub', pctClientes + '% de la cartera de clientes');
+    set('k-2-value', pct1(descuentoPromedio));
+    set('k-2-sub', 'sobre los ' + clientesConDescuento + ' clientes con descuento');
+    set('k-3-value', pct1(data.descuentoPct || 0));
+    set('k-3-sub', data.nombre || '—');
+    set('k-4-value', fmt(ingresoClientesDescuento));
+    set('k-4-sub', 'ingreso historico de clientes con descuento');
+
+    var CAT = ['var(--dsh-s1)','var(--dsh-s2)','var(--dsh-s3)','var(--dsh-s4)','var(--dsh-s5)','var(--dsh-s6)','var(--dsh-s7)','var(--dsh-s8)'];
+    var barras = (data.descuentos || []).map(function (d, i) { return { label: d.nombre, value: Number(d.descuentoPct), color: CAT[i % CAT.length] }; });
+    renderBarsPct('chart-descuentos', barras);
+
+    var tbody = document.querySelector('#tbl-descuentos tbody');
+    (data.descuentos || []).forEach(function (d) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + d.nombre + '</td><td>' + (d.tipoCliente || '—') + '</td>' +
+        '<td class="num">' + pct1(d.descuentoPct) + '</td>';
+      tbody.appendChild(tr);
+    });
+
+    set('insight-1', '<b>Lectura:</b> ' + clientesConDescuento + ' de ' + totalClientes + ' clientes (' + pctClientes + '%) tienen un descuento negociado, ' +
+      'con un promedio de ' + pct1(descuentoPromedio) + '. Este descuento se aplica automáticamente a partir de ahora a cualquier pedido nuevo — ' +
+      'las ventas históricas ya facturadas se cobraron a precio de lista, antes de que existiera esta política.');
+
+    document.getElementById('hl-timestamp').textContent = 'Consultado: ' + new Date().toLocaleString('es-EC');
+    document.getElementById('dshLoading').style.display = 'none';
+    document.getElementById('dshContent').style.display = 'block';
+  }
+
+  fetch('/api/dashboards/descuentos')
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(renderAll)
+    .catch(function (err) {
+      document.getElementById('dshLoading').textContent = 'No se pudieron cargar los datos (' + err.message + '). Verifica que la app esté conectada a dulcecana_db.';
+    });
+})();
+</script>
+</body>
+</html>

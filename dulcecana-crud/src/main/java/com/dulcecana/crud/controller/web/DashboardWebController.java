@@ -25,4 +25,9 @@ public class DashboardWebController {
     public String facturacion() {
         return "dashboards/facturacion";
     }
+
+    @GetMapping("/dashboards/descuentos")
+    public String descuentos() {
+        return "dashboards/descuentos";
+    }
 }

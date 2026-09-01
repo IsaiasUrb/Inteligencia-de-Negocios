@@ -185,4 +185,38 @@ public class DashboardRestController {
 
         return out;
     }
+
+    @GetMapping("/descuentos")
+    public Map<String, Object> descuentos() {
+        Map<String, Object> out = new LinkedHashMap<>();
+
+        Map<String, Object> clientesTotales = jdbcTemplate.queryForMap(
+                "SELECT COUNT(*) FILTER (WHERE descuento_pct > 0) AS \"clientesConDescuento\", " +
+                        "COUNT(*) AS \"totalClientes\" " +
+                        "FROM public.cliente");
+        out.putAll(clientesTotales);
+
+        Map<String, Object> promedioTotales = jdbcTemplate.queryForMap(
+                "SELECT ROUND(AVG(descuento_pct), 2) AS \"descuentoPromedio\" " +
+                        "FROM public.cliente WHERE descuento_pct > 0");
+        out.putAll(promedioTotales);
+
+        Map<String, Object> masAlto = jdbcTemplate.queryForMap(
+                "SELECT nombre, descuento_pct AS \"descuentoPct\" " +
+                        "FROM public.cliente ORDER BY descuento_pct DESC LIMIT 1");
+        out.putAll(masAlto);
+
+        Map<String, Object> ingresoTotales = jdbcTemplate.queryForMap(
+                "SELECT COALESCE(SUM(fv.subtotal), 0) AS \"ingresoClientesDescuento\" " +
+                        "FROM dw_dulce_cana.fact_ventas_dc fv " +
+                        "JOIN dw_dulce_cana.dim_cliente_dc dc ON dc.id_cliente_dw = fv.id_cliente_dw " +
+                        "WHERE dc.descuento_pct > 0");
+        out.putAll(ingresoTotales);
+
+        out.put("descuentos", jdbcTemplate.queryForList(
+                "SELECT nombre, tipo_cliente AS \"tipoCliente\", descuento_pct AS \"descuentoPct\" " +
+                        "FROM public.vw_descuentos_cliente"));
+
+        return out;
+    }
 }
