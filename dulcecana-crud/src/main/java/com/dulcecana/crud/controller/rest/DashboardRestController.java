@@ -38,6 +38,13 @@ public class DashboardRestController {
                         "GROUP BY dp.tipo_producto, dp.nombre_producto, dp.precio_lista " +
                         "ORDER BY ingreso DESC"));
 
+        out.put("productosPorAnio", jdbcTemplate.queryForList(
+                "SELECT df.anio, dp.tipo_producto AS \"tipoProducto\", SUM(f.subtotal) AS ingreso " +
+                        "FROM dw_dulce_cana.fact_ventas_dc f " +
+                        "JOIN dw_dulce_cana.dim_producto_dc dp ON f.id_producto_dw = dp.id_producto_dw " +
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "GROUP BY df.anio, dp.tipo_producto ORDER BY df.anio, dp.tipo_producto"));
+
         out.put("mensual", jdbcTemplate.queryForList(
                 "SELECT df.anio, df.mes, df.nombre_mes AS \"nombreMes\", SUM(f.subtotal) AS ingreso, " +
                         "COUNT(DISTINCT f.id_pedido_origen) AS pedidos " +

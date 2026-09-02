@@ -44,7 +44,7 @@
 
     <!-- ============ D1 — VENTAS POR PRODUCTO ============ -->
     <section class="dsh-panel active" id="p1">
-      <div class="dsh-objective"><b>Objetivo gerencial:</b> identificar qué línea y qué productos concentran el ingreso, para priorizar producción, inventario y promoción.</div>
+      <div class="dsh-objective"><b>Objetivo gerencial:</b> identificar qué línea concentra el ingreso hoy y cuál está creciendo más rápido, para decidir dónde reforzar producción, inventario e inversión a futuro.</div>
       <div class="dsh-goal"><b>Meta:</b> que la línea Melaza (hoy la más baja) alcance un ingreso promedio de <b>$300/mes</b>. <span class="dsh-badge" id="goal-1-badge">—</span></div>
 
       <div class="dsh-kpi-row">
@@ -396,7 +396,37 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
       tr.innerHTML = '<td>' + p.nombreProducto + '</td><td>' + p.tipoProducto + '</td><td class="num">' + fmt(p.ingreso) + '</td><td class="num">' + fmtInt(p.unidades) + '</td>';
       tbody1.appendChild(tr);
     });
-    set('insight-1', '<b>Lectura:</b> ' + tipos[0].label + ' genera ' + Math.round(pct(tipos[0].value, totalIngreso) / 10) + ' de cada 10 dólares vendidos. El precio promedio de venta se compara aquí en vivo contra el precio de lista de cada producto — útil para detectar descuentos no planeados.');
+    // Crecimiento anual por línea: primer año del historial vs último año COMPLETO
+    // (el último año del dataset se asume parcial, por eso se compara contra el anterior)
+    var porAnio = {};
+    data.productosPorAnio.forEach(function (r) {
+      var a = Number(r.anio);
+      porAnio[r.tipoProducto] = porAnio[r.tipoProducto] || {};
+      porAnio[r.tipoProducto][a] = Number(r.ingreso);
+    });
+    var anios = Array.from(new Set(data.productosPorAnio.map(function (r) { return Number(r.anio); }))).sort(function (a, b) { return a - b; });
+    var anioIni = anios[0], anioFin = anios[anios.length - 2];
+    var crecimientos = Object.keys(porAnio).map(function (linea) {
+      var ini = porAnio[linea][anioIni] || 0, fin = porAnio[linea][anioFin] || 0;
+      var nAnios = anioFin - anioIni;
+      var cagr = (ini > 0 && nAnios > 0) ? (Math.pow(fin / ini, 1 / nAnios) - 1) * 100 : 0;
+      return { label: linea, cagr: cagr };
+    });
+    crecimientos.sort(function (a, b) { return b.cagr - a.cagr; });
+    set('k1-2-label', 'Línea de mayor crecimiento');
+    set('k1-2-value', crecimientos[0].label);
+    set('k1-2-sub', '+' + crecimientos[0].cagr.toFixed(1) + '%/año (' + anioIni + '→' + anioFin + ')');
+    var liderCrec = crecimientos.find(function (c) { return c.label === tipos[0].label; });
+    set('k1-3-label', 'Crecimiento de ' + tipos[0].label + ' (línea líder)');
+    set('k1-3-value', '+' + liderCrec.cagr.toFixed(1) + '%/año');
+    set('k1-3-sub', crecimientos[0].label !== tipos[0].label ? 'vs. +' + crecimientos[0].cagr.toFixed(1) + '%/año de ' + crecimientos[0].label : 'la línea líder también crece más rápido');
+
+    set('insight-1', '<b>Lectura:</b> ' + tipos[0].label + ' lidera en ingreso absoluto (' + pct(tipos[0].value, totalIngreso) + '% del total), pero ' +
+      (crecimientos[0].label !== tipos[0].label
+        ? crecimientos[0].label + ' es la línea que más rápido está creciendo (+' + crecimientos[0].cagr.toFixed(1) + '%/año desde ' + anioIni + ') — con el histórico ampliado a casi 7 años ya se puede ver esta tendencia, algo que no se notaba con solo 20 meses de datos.'
+        + ' No se trata de abandonar ' + tipos[0].label + ', es que ahora hay una base real para decidir si conviene reforzar la inversión en ' + crecimientos[0].label + ' sin descuidar el volumen de ' + tipos[0].label + '.'
+        : tipos[0].label + ' también es la línea que más rápido crece — lidera en ambos frentes.') +
+      ' El precio promedio de venta se compara aquí en vivo contra el precio de lista de cada producto — útil para detectar descuentos no planeados.');
     var melaza = tipos.find(function (t) { return t.label === 'Melaza'; });
     if (melaza) { var melazaMes = melaza.value / data.mensual.length; setBadge('goal-1-badge', melazaMes >= 300, fmt(melazaMes) + '/mes'); }
 
