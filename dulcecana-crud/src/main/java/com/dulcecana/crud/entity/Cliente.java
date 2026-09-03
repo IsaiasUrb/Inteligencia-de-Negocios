@@ -1,8 +1,12 @@
 package com.dulcecana.crud.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -36,6 +40,12 @@ public class Cliente {
     @Column(name = "activo")
     private Boolean activo;
 
+    @NotNull(message = "El descuento es obligatorio")
+    @DecimalMin(value = "0", message = "El descuento no puede ser negativo")
+    @DecimalMax(value = "100", message = "El descuento no puede superar 100%")
+    @Column(name = "descuento_pct", nullable = false)
+    private BigDecimal descuentoPct = BigDecimal.ZERO;
+
     public Integer getIdCliente() { return idCliente; }
     public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
 
@@ -59,4 +69,7 @@ public class Cliente {
 
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
+
+    public BigDecimal getDescuentoPct() { return descuentoPct; }
+    public void setDescuentoPct(BigDecimal descuentoPct) { this.descuentoPct = descuentoPct; }
 }

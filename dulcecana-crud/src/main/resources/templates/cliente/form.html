@@ -56,6 +56,12 @@
         <input type="date" id="fechaRegistro" th:field="*{fechaRegistro}">
       </div>
 
+      <div class="field">
+        <label for="descuentoPct">Descuento negociado (%)</label>
+        <input type="number" id="descuentoPct" step="0.01" min="0" max="100" th:field="*{descuentoPct}">
+        <div class="error" th:if="${#fields.hasErrors('descuentoPct')}" th:errors="*{descuentoPct}"></div>
+      </div>
+
       <div class="field checkbox">
         <input type="checkbox" id="activo" th:field="*{activo}">
         <label for="activo">Cliente activo</label>

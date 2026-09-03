@@ -20,7 +20,7 @@
     <table th:if="${not #lists.isEmpty(clientes)}">
       <thead>
         <tr>
-          <th>ID</th><th>Nombre</th><th>Tipo</th><th>Ciudad</th><th>Correo</th><th>Activo</th><th></th>
+          <th>ID</th><th>Nombre</th><th>Tipo</th><th>Ciudad</th><th>Correo</th><th>Descuento</th><th>Activo</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -30,6 +30,7 @@
           <td><span class="badge" th:text="${c.tipoCliente}"></span></td>
           <td th:text="${c.ciudad}"></td>
           <td th:text="${c.correo}"></td>
+          <td th:text="${c.descuentoPct} + '%'"></td>
           <td th:text="${c.activo != null and c.activo} ? 'Sí' : 'No'"></td>
           <td class="actions">
             <a class="btn secondary small" th:href="@{/clientes/editar/{id}(id=${c.idCliente})}">Editar</a>
