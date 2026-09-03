@@ -301,8 +301,10 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
       t.textContent = '$' + Math.round(v).toLocaleString('en-US');
       svg.appendChild(t);
     }
+    var maxEtiquetas = 14;
+    var salto = Math.max(1, Math.ceil(points.length / maxEtiquetas));
     points.forEach(function (d, i) {
-      if (i % 2 !== 0) return;
+      if (i % salto !== 0 && i !== points.length - 1) return;
       var t = el('text', { x: x(i), y: H - 8, class: 'lc-axis-label', 'text-anchor': 'middle' });
       t.textContent = d.label;
       svg.appendChild(t);
