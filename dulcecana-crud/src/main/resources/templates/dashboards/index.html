@@ -301,10 +301,8 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
       t.textContent = '$' + Math.round(v).toLocaleString('en-US');
       svg.appendChild(t);
     }
-    var maxEtiquetas = 14;
-    var salto = Math.max(1, Math.ceil(points.length / maxEtiquetas));
     points.forEach(function (d, i) {
-      if (i % salto !== 0 && i !== points.length - 1) return;
+      if (!d.label) return;
       var t = el('text', { x: x(i), y: H - 8, class: 'lc-axis-label', 'text-anchor': 'middle' });
       t.textContent = d.label;
       svg.appendChild(t);
@@ -443,8 +441,19 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     if (melaza) { var melazaMes = melaza.value / data.mensual.length; setBadge('goal-1-badge', melazaMes >= 300, fmt(melazaMes) + '/mes'); }
 
     // ---- D2: mensual ----
+    // Con un año filtrado se etiqueta cada mes (Ene, Feb, ...). Con "todos los
+    // años" (varios años a la vez) etiquetar cada mes amontona el eje X — en
+    // vez de eso se etiqueta una sola vez por año, en su primer mes.
+    var aniosEnVista = Array.from(new Set(data.mensual.map(function (m) { return Number(m.anio); })));
+    var esMultiAnio = aniosEnVista.length > 1;
     var pts = data.mensual.map(function (m, i) {
-      var label = (MESES[m.nombreMes] || m.nombreMes.slice(0,3)) + (m.anio !== mFirst.anio ? "'" + String(m.anio).slice(2) : '');
+      var label;
+      if (esMultiAnio) {
+        var esPrimerMesDelAnio = i === 0 || Number(m.anio) !== Number(data.mensual[i - 1].anio);
+        label = esPrimerMesDelAnio ? String(m.anio) : '';
+      } else {
+        label = MESES[m.nombreMes] || m.nombreMes.slice(0, 3);
+      }
       return { label: label, full: m.nombreMes + ' ' + m.anio, v: Number(m.ingreso) };
     });
     renderLine('chart-mensual', pts);
