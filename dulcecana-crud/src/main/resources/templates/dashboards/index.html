@@ -399,6 +399,7 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     set('k1-4-value', topProducto.nombreProducto);
     set('k1-4-sub', fmt(topProducto.ingreso) + ' · ' + fmtInt(topProducto.unidades) + ' unidades');
     var tbody1 = document.querySelector('#tbl-productos tbody');
+    tbody1.innerHTML = '';
     data.productos.slice(0, 5).forEach(function (p) {
       var tr = document.createElement('tr');
       tr.innerHTML = '<td>' + p.nombreProducto + '</td><td>' + p.tipoProducto + '</td><td class="num">' + fmt(p.ingreso) + '</td><td class="num">' + fmtInt(p.unidades) + '</td>';
@@ -481,6 +482,7 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     set('k3-4-value', mejorTicket.label);
     set('k3-4-sub', fmt(mejorTicket.value / mejorTicket.pedidos) + ' por pedido');
     var tbody3 = document.querySelector('#tbl-clientes tbody');
+    tbody3.innerHTML = '';
     data.topClientes.forEach(function (c) {
       var tr = document.createElement('tr');
       tr.innerHTML = '<td>' + c.nombre + '</td><td class="num">' + fmt(c.ingreso) + '</td><td class="num">' + pct(c.ingreso, totalIngreso) + '%</td>';

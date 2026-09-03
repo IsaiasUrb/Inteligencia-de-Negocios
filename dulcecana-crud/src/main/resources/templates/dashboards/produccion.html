@@ -210,6 +210,7 @@ FROM dw_dulce_cana.vw_rentabilidad_lote ORDER BY fecha_produccion DESC;</pre></d
     }));
 
     var tbody = document.querySelector('#tbl-rentabilidad tbody');
+    tbody.innerHTML = '';
     var topLotes = data.rentabilidadLote.slice().sort(function (a, b) { return Number(b.utilidadBruta) - Number(a.utilidadBruta); }).slice(0, 10);
     topLotes.forEach(function (l) {
       var tr = document.createElement('tr');

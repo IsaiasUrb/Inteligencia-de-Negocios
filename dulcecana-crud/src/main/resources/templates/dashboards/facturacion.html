@@ -218,6 +218,7 @@ ORDER BY v.fecha_emision DESC LIMIT 10;</pre></div>
     renderStackedBars('chart-facturacion', itemsFact, seriesFact);
 
     var tbody = document.querySelector('#tbl-facturas tbody');
+    tbody.innerHTML = '';
     (data.facturasPendientesDetalle || []).forEach(function (f) {
       var badgeClass = f.estadoPago === 'Parcial' ? 'partial' : 'serious';
       var tr = document.createElement('tr');
