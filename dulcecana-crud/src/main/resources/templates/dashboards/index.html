@@ -377,6 +377,23 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     el.textContent = (met ? 'CUMPLIDA' : 'EN PROGRESO') + (note ? ' · ' + note : '');
     el.className = 'dsh-badge ' + (met ? 'good' : 'warn');
   }
+  // Metas evaluadas sobre un periodo cerrado (un año ya terminado, o el historial
+  // completo) no pueden seguir "en progreso" si no alcanzaron el umbral — un periodo
+  // que ya terminó no avanza más. Solo el año actual (todavía en curso) puede mostrar
+  // "EN PROGRESO"; el año se obtiene en vivo con Date, nunca escrito a mano.
+  // periodoAnio: null/undefined = historial completo ("Todos los años"); número = año
+  // seleccionado en el filtro.
+  function estadoMeta(met, periodoAnio) {
+    if (met) return 'CUMPLIDA';
+    if (periodoAnio == null) return 'NO CUMPLIDA';
+    return Number(periodoAnio) < new Date().getFullYear() ? 'NO CUMPLIDA' : 'EN PROGRESO';
+  }
+  function setBadgeEstado(id, estado, note) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = estado + (note ? ' · ' + note : '');
+    el.className = 'dsh-badge ' + (estado === 'CUMPLIDA' ? 'good' : 'warn');
+  }
 
   function renderAll(data) {
     var CAT = ['var(--dsh-s1)','var(--dsh-s2)','var(--dsh-s3)','var(--dsh-s4)','var(--dsh-s5)','var(--dsh-s6)','var(--dsh-s7)','var(--dsh-s8)'];
@@ -447,7 +464,7 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     datosCompletos.productos.forEach(function (p) { porTipoFull[p.tipoProducto] = (porTipoFull[p.tipoProducto] || 0) + Number(p.ingreso); });
     if (porTipoFull['Melaza'] !== undefined) {
       var melazaMesFull = porTipoFull['Melaza'] / datosCompletos.mensual.length;
-      setBadge('goal-1-badge', melazaMesFull >= 300, fmt(melazaMesFull) + '/mes · histórico');
+      setBadgeEstado('goal-1-badge', estadoMeta(melazaMesFull >= 300, null), fmt(melazaMesFull) + '/mes · Histórico');
     }
 
     // ---- D2: mensual ----
@@ -492,7 +509,7 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
       ? ((Number(mLastFull.ingreso) - Number(mensualFull[mensualFull.length - 2].ingreso)) / Number(mensualFull[mensualFull.length - 2].ingreso)) * 100
       : 0;
     var goal2Met = Number(mLastFull.ingreso) >= promedioMensualFull && variacionUltFull >= -10;
-    setBadge('goal-2-badge', goal2Met, variacionUltFull.toFixed(1) + '% último mes · histórico');
+    setBadgeEstado('goal-2-badge', estadoMeta(goal2Met, null), variacionUltFull.toFixed(1) + '% último mes · Histórico');
 
     // ---- D3: clientes ----
     var tiposCliente = data.clientesPorTipo.map(function (c, i) { return { label: c.tipoCliente, value: Number(c.ingreso), pedidos: Number(c.pedidos), color: CAT[i % CAT.length] }; });
@@ -524,8 +541,10 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     if (tiendaSel && minoristaSel) {
       var ticketTiendaSel = Number(tiendaSel.ingreso) / Number(tiendaSel.pedidos);
       var ticketMinoristaSel = Number(minoristaSel.ingreso) / Number(minoristaSel.pedidos);
-      var periodoMeta3 = selectAnio.value || 'Histórico';
-      setBadge('goal-3-badge', ticketTiendaSel >= 25 && ticketMinoristaSel >= 25,
+      var anioSelMeta3 = selectAnio.value ? Number(selectAnio.value) : null;
+      var periodoMeta3 = anioSelMeta3 != null ? String(anioSelMeta3) : 'Histórico';
+      var metaMeta3 = ticketTiendaSel >= 25 && ticketMinoristaSel >= 25;
+      setBadgeEstado('goal-3-badge', estadoMeta(metaMeta3, anioSelMeta3),
         'Tienda ' + fmt(ticketTiendaSel) + ' · Minorista ' + fmt(ticketMinoristaSel) + ' · ' + periodoMeta3);
     }
 
@@ -556,7 +575,7 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     datosCompletos.estadoPedido.forEach(function (e) { estadosFull[e.estado] = e; });
     var entregadoFull = estadosFull['Entregado'] || { pedidos: 0, valor: 0 };
     var totalPedidosFull = Number(datosCompletos.totalPedidos);
-    setBadge('goal-4-badge', (entregadoFull.pedidos / totalPedidosFull) * 100 >= 90, pct(entregadoFull.pedidos, totalPedidosFull) + '% histórico');
+    setBadgeEstado('goal-4-badge', estadoMeta((entregadoFull.pedidos / totalPedidosFull) * 100 >= 90, null), pct(entregadoFull.pedidos, totalPedidosFull) + '% Histórico');
 
     // ---- D5: proveedores ----
     var provs = data.proveedores.map(function (p) { return { label: p.nombre, value: Number(p.ingreso) }; });
