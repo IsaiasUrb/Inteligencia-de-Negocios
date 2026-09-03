@@ -535,13 +535,22 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     // Meta 3: ticket promedio Tienda/Minorista, sobre el periodo evaluado (el año elegido
     // en el filtro, o el historial completo si el filtro está en "Todos los años") — a
     // diferencia de las metas 1, 2, 4 y 5, esta sí se recalcula con cada cambio de año.
+    var anioSelMeta3 = selectAnio.value ? Number(selectAnio.value) : null;
+    var periodoMeta3 = anioSelMeta3 != null ? String(anioSelMeta3) : 'Histórico';
     var tiendaSel = data.clientesPorTipo.find(function (c) { return c.tipoCliente === 'Tienda'; });
     var minoristaSel = data.clientesPorTipo.find(function (c) { return c.tipoCliente === 'Minorista'; });
-    if (tiendaSel && minoristaSel) {
+    // El badge debe actualizarse en cada cambio de filtro, incluso si algún segmento no
+    // tiene registros en el periodo — de lo contrario quedaría mostrando el resultado del
+    // año seleccionado anteriormente. Un segmento con 0 pedidos también cuenta como sin
+    // datos, para no dividir entre cero.
+    var segmentosSinDatos = [];
+    if (!tiendaSel || Number(tiendaSel.pedidos) <= 0) segmentosSinDatos.push('Tienda');
+    if (!minoristaSel || Number(minoristaSel.pedidos) <= 0) segmentosSinDatos.push('Minorista');
+    if (segmentosSinDatos.length > 0) {
+      setBadgeEstado('goal-3-badge', 'SIN DATOS', segmentosSinDatos.join(' y ') + ' sin registros · ' + periodoMeta3);
+    } else {
       var ticketTiendaSel = Number(tiendaSel.ingreso) / Number(tiendaSel.pedidos);
       var ticketMinoristaSel = Number(minoristaSel.ingreso) / Number(minoristaSel.pedidos);
-      var anioSelMeta3 = selectAnio.value ? Number(selectAnio.value) : null;
-      var periodoMeta3 = anioSelMeta3 != null ? String(anioSelMeta3) : 'Histórico';
       var metaMeta3 = ticketTiendaSel >= 25 && ticketMinoristaSel >= 25;
       setBadgeEstado('goal-3-badge', estadoMeta(metaMeta3, anioSelMeta3),
         'Tienda ' + fmt(ticketTiendaSel) + ' · Minorista ' + fmt(ticketMinoristaSel) + ' · ' + periodoMeta3);
