@@ -371,12 +371,6 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
   }
 
   function set(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
-  function setBadge(id, met, note) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = (met ? 'CUMPLIDA' : 'EN PROGRESO') + (note ? ' · ' + note : '');
-    el.className = 'dsh-badge ' + (met ? 'good' : 'warn');
-  }
   // Metas evaluadas sobre un periodo cerrado (un año ya terminado, o el historial
   // completo) no pueden seguir "en progreso" si no alcanzaron el umbral — un periodo
   // que ya terminó no avanza más. Solo el año actual (todavía en curso) puede mostrar
@@ -391,8 +385,13 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
   function setBadgeEstado(id, estado, note) {
     var el = document.getElementById(id);
     if (!el) return;
+    var clase =
+      estado === 'CUMPLIDA' ? 'good' :
+      estado === 'NO CUMPLIDA' ? 'bad' :
+      estado === 'SIN DATOS' ? 'neutral' :
+      'warn';
     el.textContent = estado + (note ? ' · ' + note : '');
-    el.className = 'dsh-badge ' + (estado === 'CUMPLIDA' ? 'good' : 'warn');
+    el.className = 'dsh-badge ' + clase;
   }
 
   function renderAll(data) {
@@ -601,7 +600,16 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     set('k5-4-value', fmtInt(Math.round(totalKg)) + ' kg');
     set('k5-4-sub', fmtInt(Math.round(finalizado.kgTotal || 0)) + ' kg ya finalizados');
     set('insight-5', '<b>Lectura:</b> el top 3 de proveedores concentra ' + pct(top3Sum, totalIngreso) + '% del ingreso — riesgo de concentración a vigilar. ' + proceso.n + ' lote(s) siguen "En proceso" (' + fmtInt(Math.round(proceso.kgTotal || 0)) + ' kg), el resto ya está finalizado.');
-    setBadge('goal-5-badge', (Number(finalizado.n) / totalLotes) * 100 >= 90, pct(finalizado.n, totalLotes) + '% actual');
+    // Meta 5 representa el estado actual de los lotes, no un periodo histórico
+    // cerrado. Si todavía no alcanza el 90%, permanece EN PROGRESO porque los
+    // lotes en proceso pueden finalizarse. Si no hay lotes, se muestra SIN DATOS.
+    if (totalLotes === 0) {
+      setBadgeEstado('goal-5-badge', 'SIN DATOS', 'No existen lotes registrados · Actual');
+    } else {
+      var porcentajeFinalizados = (Number(finalizado.n) / totalLotes) * 100;
+      var estadoMeta5 = porcentajeFinalizados >= 90 ? 'CUMPLIDA' : 'EN PROGRESO';
+      setBadgeEstado('goal-5-badge', estadoMeta5, pct(finalizado.n, totalLotes) + '% · Actual');
+    }
 
     document.getElementById('dshLoading').style.display = 'none';
     document.getElementById('dshContent').style.display = 'block';

@@ -126,6 +126,8 @@
 .dsh-root .dsh-badge.warn { background: rgba(250,178,25,0.16); color: #a86a00; }
 @media (prefers-color-scheme: dark) { .dsh-root:not([data-theme="light"]) .dsh-badge.warn { color: var(--dsh-warning); } }
 .dsh-root[data-theme="dark"] .dsh-badge.warn { color: var(--dsh-warning); }
+.dsh-root .dsh-badge.bad { background: rgba(236,131,90,0.16); color: var(--dsh-serious); }
+.dsh-root .dsh-badge.neutral { background: var(--dsh-line); color: var(--dsh-ink-mute); }
 
 .dsh-root .dsh-kpi-row {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
