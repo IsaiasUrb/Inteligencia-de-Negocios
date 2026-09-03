@@ -35,7 +35,7 @@
     <select id="filtroAnio" style="font:inherit; font-size:13px; padding:6px 10px; border-radius:4px; border:1.5px solid var(--dsh-ink); background:var(--dsh-surface); color:var(--dsh-ink); cursor:pointer;">
       <option value="">Todos los años</option>
     </select>
-    <span style="font-size:12px; color:var(--dsh-ink-mute);">La línea de mayor crecimiento (pestaña 01), los clientes activos (pestaña 03) y el estado de los lotes (pestaña 05) siempre reflejan el historial completo o el estado actual — no cambian con este filtro.</span>
+    <span style="font-size:12px; color:var(--dsh-ink-mute);">Los KPIs y gráficos de cada pestaña sí cambian según el año elegido. Los objetivos gerenciales y las 5 metas (los badges "CUMPLIDA"/"EN PROGRESO") son de carácter estratégico y siempre se mantienen válidos sin importar el año seleccionado.</span>
   </div>
 
   <nav class="dsh-tabs" role="tablist">
@@ -52,7 +52,7 @@
 
     <!-- ============ D1 — VENTAS POR PRODUCTO ============ -->
     <section class="dsh-panel active" id="p1">
-      <div class="dsh-objective"><b>Objetivo gerencial:</b> identificar qué línea concentra el ingreso hoy y cuál está creciendo más rápido, para decidir dónde reforzar producción, inventario e inversión a futuro.</div>
+      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el desempeño y la tendencia de crecimiento de cada línea de producto para apoyar decisiones estratégicas de inversión, priorización de producción e inventario, y enfoque comercial hacia las líneas con mayor potencial.</div>
       <div class="dsh-goal"><b>Meta:</b> que la línea Melaza (hoy la más baja) alcance un ingreso promedio de <b>$300/mes</b>. <span class="dsh-badge" id="goal-1-badge">—</span></div>
 
       <div class="dsh-kpi-row">
@@ -87,7 +87,7 @@ ORDER BY ingreso DESC;</pre></div>
 
     <!-- ============ D2 — EVOLUCIÓN MENSUAL ============ -->
     <section class="dsh-panel" id="p2">
-      <div class="dsh-objective"><b>Objetivo gerencial:</b> monitorear la tendencia de ingresos mes a mes para anticipar estacionalidad y planificar flujo de caja y producción.</div>
+      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el comportamiento y las tendencias de las ventas a lo largo del tiempo para apoyar decisiones de planificación comercial, definición de estrategias, asignación de recursos y acciones correctivas ante cambios en el desempeño.</div>
       <div class="dsh-goal"><b>Meta:</b> mantener el ingreso mensual en al menos el promedio histórico y limitar caídas a un máximo de <b>10% mes a mes</b>. <span class="dsh-badge" id="goal-2-badge">—</span></div>
 
       <div class="dsh-kpi-row">
@@ -116,7 +116,7 @@ ORDER BY df.anio, df.mes;</pre></div>
 
     <!-- ============ D3 — CLIENTES ============ -->
     <section class="dsh-panel" id="p3">
-      <div class="dsh-objective"><b>Objetivo gerencial:</b> segmentar la cartera de clientes para dirigir estrategias comerciales diferenciadas por tipo de cliente.</div>
+      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar la composición y el aporte de cada segmento de clientes para apoyar decisiones de priorización comercial, políticas de precios y descuentos diferenciadas, y estrategias de fidelización de los segmentos de mayor valor.</div>
       <div class="dsh-goal"><b>Meta:</b> elevar el ticket promedio de los segmentos más bajos (Tienda y Minorista) a <b>$25 por pedido</b>. <span class="dsh-badge" id="goal-3-badge">—</span></div>
 
       <div class="dsh-kpi-row">
@@ -149,7 +149,7 @@ GROUP BY dc.tipo_cliente ORDER BY ingreso DESC;</pre></div>
 
     <!-- ============ D4 — PEDIDOS ============ -->
     <section class="dsh-panel" id="p4">
-      <div class="dsh-objective"><b>Objetivo gerencial:</b> dar visibilidad al estado operativo de los pedidos y al medio de cobro, para gestión logística y de cobranza.</div>
+      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el cumplimiento del ciclo de atención de pedidos y la estructura de medios de cobro para apoyar decisiones de control de gestión, mejora de procesos comerciales y definición de políticas de crédito que reduzcan el riesgo financiero de la empresa.</div>
       <div class="dsh-goal"><b>Meta:</b> llegar a <b>90% de pedidos en estado "Entregado"</b>. <span class="dsh-badge" id="goal-4-badge">—</span></div>
 
       <div class="dsh-kpi-row">
@@ -186,7 +186,7 @@ FROM dw_dulce_cana.fact_ventas_dc GROUP BY metodo_pago ORDER BY valor DESC;</pre
 
     <!-- ============ D5 — PROVEEDORES Y PRODUCCIÓN ============ -->
     <section class="dsh-panel" id="p5">
-      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el desempeño de proveedores y lotes de producción para asegurar la trazabilidad y continuidad del abastecimiento.</div>
+      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el desempeño de los proveedores y la eficiencia del proceso productivo para apoyar decisiones estratégicas de abastecimiento, diversificación de proveedores y gestión del riesgo de continuidad operativa.</div>
       <div class="dsh-goal"><b>Meta:</b> mantener al menos <b>90% de los lotes de producción finalizados</b>. <span class="dsh-badge" id="goal-5-badge">—</span></div>
 
       <div class="dsh-kpi-row">
@@ -250,6 +250,10 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
   var pct = function (part, total) { return total ? ((part / total) * 100).toFixed(1) : '0.0'; };
   var MESES = { Enero:'Ene', Febrero:'Feb', Marzo:'Mar', Abril:'Abr', Mayo:'May', Junio:'Jun',
     Julio:'Jul', Agosto:'Ago', Septiembre:'Sep', Octubre:'Oct', Noviembre:'Nov', Diciembre:'Dic' };
+  // Copia del primer fetch SIN filtro (anio=null). Las 5 metas gerenciales (goal-1..goal-5)
+  // siempre se calculan a partir de esta copia, nunca de los datos filtrados por año — así
+  // una meta estratégica no cambia de CUMPLIDA a EN PROGRESO solo porque se cambió el filtro.
+  var datosCompletos = null;
 
   // ---- Tabs ----
   var tabs = document.querySelectorAll('.dsh-tab');
@@ -437,8 +441,14 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
         + ' No se trata de abandonar ' + tipos[0].label + ', es que ahora hay una base real para decidir si conviene reforzar la inversión en ' + crecimientos[0].label + ' sin descuidar el volumen de ' + tipos[0].label + '.'
         : tipos[0].label + ' también es la línea que más rápido crece — lidera en ambos frentes.') +
       ' El precio promedio de venta se compara aquí en vivo contra el precio de lista de cada producto — útil para detectar descuentos no planeados.');
-    var melaza = tipos.find(function (t) { return t.label === 'Melaza'; });
-    if (melaza) { var melazaMes = melaza.value / data.mensual.length; setBadge('goal-1-badge', melazaMes >= 300, fmt(melazaMes) + '/mes'); }
+    // Meta 1: se evalúa siempre sobre el historial completo (datosCompletos), no sobre
+    // el año filtrado — es un objetivo estratégico de largo plazo, no de un año puntual.
+    var porTipoFull = {};
+    datosCompletos.productos.forEach(function (p) { porTipoFull[p.tipoProducto] = (porTipoFull[p.tipoProducto] || 0) + Number(p.ingreso); });
+    if (porTipoFull['Melaza'] !== undefined) {
+      var melazaMesFull = porTipoFull['Melaza'] / datosCompletos.mensual.length;
+      setBadge('goal-1-badge', melazaMesFull >= 300, fmt(melazaMesFull) + '/mes · histórico');
+    }
 
     // ---- D2: mensual ----
     // Con un año filtrado se etiqueta cada mes (Ene, Feb, ...). Con "todos los
@@ -471,12 +481,18 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     }
     set('k2-4-value', fmt(totalIngreso / totalPedidos));
     set('insight-2', '<b>Lectura:</b> el ingreso mensual se mueve entre ' + fmt(Math.min.apply(null, data.mensual.map(function(m){return Number(m.ingreso);}))) + ' y ' + fmt(pico.ingreso) + ' a lo largo del periodo. El mes más reciente es ' + (MESES[mLast.nombreMes]||mLast.nombreMes) + ' ' + mLast.anio + ' — conviene revisarlo junto al equipo comercial si se aleja del promedio.');
-    var promedioMensual = totalIngreso / data.mensual.length;
-    var variacionUlt = data.mensual.length >= 2
-      ? ((Number(mLast.ingreso) - Number(data.mensual[data.mensual.length - 2].ingreso)) / Number(data.mensual[data.mensual.length - 2].ingreso)) * 100
+    // Meta 2: "promedio histórico" y "último mes" deben ser SIEMPRE el promedio y el último
+    // mes de todo el historial (datosCompletos) — si se tomara del año filtrado, el propio
+    // promedio cambiaría según el año elegido y la meta perdería sentido como comparación.
+    var mensualFull = datosCompletos.mensual;
+    var totalIngresoFull = mensualFull.reduce(function (a, m) { return a + Number(m.ingreso); }, 0);
+    var promedioMensualFull = totalIngresoFull / mensualFull.length;
+    var mLastFull = mensualFull[mensualFull.length - 1];
+    var variacionUltFull = mensualFull.length >= 2
+      ? ((Number(mLastFull.ingreso) - Number(mensualFull[mensualFull.length - 2].ingreso)) / Number(mensualFull[mensualFull.length - 2].ingreso)) * 100
       : 0;
-    var goal2Met = Number(mLast.ingreso) >= promedioMensual && variacionUlt >= -10;
-    setBadge('goal-2-badge', goal2Met, variacionUlt.toFixed(1) + '% último mes');
+    var goal2Met = Number(mLastFull.ingreso) >= promedioMensualFull && variacionUltFull >= -10;
+    setBadge('goal-2-badge', goal2Met, variacionUltFull.toFixed(1) + '% último mes · histórico');
 
     // ---- D3: clientes ----
     var tiposCliente = data.clientesPorTipo.map(function (c, i) { return { label: c.tipoCliente, value: Number(c.ingreso), pedidos: Number(c.pedidos), color: CAT[i % CAT.length] }; });
@@ -500,12 +516,14 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
       tbody3.appendChild(tr);
     });
     set('insight-3', '<b>Lectura:</b> el segmento ' + mejorTicket.label + ' compra en tickets más grandes que el resto — apoya diferenciar condiciones comerciales por volumen. ' + pct(act.activos, act.total) + '% de la cartera de clientes está activa.');
-    var tienda = tiposCliente.find(function (c) { return c.label === 'Tienda'; });
-    var minorista = tiposCliente.find(function (c) { return c.label === 'Minorista'; });
-    if (tienda && minorista) {
-      var ticketTienda = tienda.value / tienda.pedidos, ticketMinorista = minorista.value / minorista.pedidos;
-      setBadge('goal-3-badge', ticketTienda >= 25 && ticketMinorista >= 25,
-        'Tienda ' + fmt(ticketTienda) + ' · Minorista ' + fmt(ticketMinorista));
+    // Meta 3: ticket promedio Tienda/Minorista, siempre sobre el historial completo.
+    var tiendaFull = datosCompletos.clientesPorTipo.find(function (c) { return c.tipoCliente === 'Tienda'; });
+    var minoristaFull = datosCompletos.clientesPorTipo.find(function (c) { return c.tipoCliente === 'Minorista'; });
+    if (tiendaFull && minoristaFull) {
+      var ticketTiendaFull = Number(tiendaFull.ingreso) / Number(tiendaFull.pedidos);
+      var ticketMinoristaFull = Number(minoristaFull.ingreso) / Number(minoristaFull.pedidos);
+      setBadge('goal-3-badge', ticketTiendaFull >= 25 && ticketMinoristaFull >= 25,
+        'Tienda ' + fmt(ticketTiendaFull) + ' · Minorista ' + fmt(ticketMinoristaFull) + ' · histórico');
     }
 
     // ---- D4: pedidos ----
@@ -530,7 +548,12 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     ]);
     renderBars('chart-metodoPago', data.metodoPago.map(function (m, i) { return { label: m.metodo, value: Number(m.valor), color: CAT[i] }; }));
     set('insight-4', '<b>Lectura:</b> ' + pct(pendiente.pedidos + enProceso.pedidos, totalPedidos) + '% de los pedidos aún no llega a "Entregado". ' + metodoTop.metodo + ' es el método de cobro principal — el equipo de cobranza puede priorizar su seguimiento.');
-    setBadge('goal-4-badge', (entregado.pedidos / totalPedidos) * 100 >= 90, pct(entregado.pedidos, totalPedidos) + '% actual');
+    // Meta 4: % de pedidos "Entregado" sobre el historial completo, no solo el año filtrado.
+    var estadosFull = {};
+    datosCompletos.estadoPedido.forEach(function (e) { estadosFull[e.estado] = e; });
+    var entregadoFull = estadosFull['Entregado'] || { pedidos: 0, valor: 0 };
+    var totalPedidosFull = Number(datosCompletos.totalPedidos);
+    setBadge('goal-4-badge', (entregadoFull.pedidos / totalPedidosFull) * 100 >= 90, pct(entregadoFull.pedidos, totalPedidosFull) + '% histórico');
 
     // ---- D5: proveedores ----
     var provs = data.proveedores.map(function (p) { return { label: p.nombre, value: Number(p.ingreso) }; });
@@ -588,6 +611,7 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function (data) {
         poblarAnios(data);
+        if (!anio) { datosCompletos = data; }
         renderAll(data);
       })
       .catch(function (err) {
