@@ -53,7 +53,7 @@
     <!-- ============ D1 — VENTAS POR PRODUCTO ============ -->
     <section class="dsh-panel active" id="p1">
       <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el desempeño y la tendencia de crecimiento de cada línea de producto para apoyar decisiones estratégicas de inversión, priorización de producción e inventario, y enfoque comercial hacia las líneas con mayor potencial.</div>
-      <div class="dsh-goal"><b>Meta:</b> que la línea Melaza (hoy la más baja) alcance un ingreso promedio de <b>$300/mes</b>. <span class="dsh-badge" id="goal-1-badge">—</span></div>
+      <div class="dsh-goal"><b>Meta:</b> alcanzar un ingreso promedio histórico mínimo de <b>$300 mensuales</b> en la línea Melaza, medido sobre el historial completo de ventas. <span class="dsh-badge" id="goal-1-badge">—</span></div>
 
       <div class="dsh-kpi-row">
         <div class="dsh-kpi"><div class="k-label" id="k1-1-label">Línea líder</div><div class="k-value" id="k1-1-value">—</div><div class="k-sub" id="k1-1-sub"></div></div>
@@ -88,7 +88,7 @@ ORDER BY ingreso DESC;</pre></div>
     <!-- ============ D2 — EVOLUCIÓN MENSUAL ============ -->
     <section class="dsh-panel" id="p2">
       <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el comportamiento y las tendencias de las ventas a lo largo del tiempo para apoyar decisiones de planificación comercial, definición de estrategias, asignación de recursos y acciones correctivas ante cambios en el desempeño.</div>
-      <div class="dsh-goal"><b>Meta:</b> mantener el ingreso mensual en al menos el promedio histórico y limitar caídas a un máximo de <b>10% mes a mes</b>. <span class="dsh-badge" id="goal-2-badge">—</span></div>
+      <div class="dsh-goal"><b>Meta:</b> mantener el ingreso del último mes registrado en el historial en al menos el <b>promedio histórico mensual</b>, con caídas mes a mes de máximo <b>10%</b>. <span class="dsh-badge" id="goal-2-badge">—</span></div>
 
       <div class="dsh-kpi-row">
         <div class="dsh-kpi"><div class="k-label">Ingreso del periodo</div><div class="k-value" id="k2-1-value">—</div><div class="k-sub" id="k2-1-sub"></div></div>
@@ -116,8 +116,8 @@ ORDER BY df.anio, df.mes;</pre></div>
 
     <!-- ============ D3 — CLIENTES ============ -->
     <section class="dsh-panel" id="p3">
-      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar la composición y el aporte de cada segmento de clientes para apoyar decisiones de priorización comercial, políticas de precios y descuentos diferenciadas, y estrategias de fidelización de los segmentos de mayor valor.</div>
-      <div class="dsh-goal"><b>Meta:</b> elevar el ticket promedio de los segmentos más bajos (Tienda y Minorista) a <b>$25 por pedido</b>. <span class="dsh-badge" id="goal-3-badge">—</span></div>
+      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar la contribución económica y el comportamiento de compra de los distintos segmentos de clientes para apoyar decisiones gerenciales de priorización comercial, diferenciación de condiciones de venta y control de la concentración de ingresos.</div>
+      <div class="dsh-goal"><b>Meta:</b> alcanzar un ticket promedio histórico de al menos <b>$25 por pedido</b> en los segmentos Tienda y Minorista, medido sobre el historial completo de ventas. <span class="dsh-badge" id="goal-3-badge">—</span></div>
 
       <div class="dsh-kpi-row">
         <div class="dsh-kpi"><div class="k-label">Segmento líder</div><div class="k-value" id="k3-1-value" style="font-size:16px">—</div><div class="k-sub" id="k3-1-sub"></div></div>
@@ -149,8 +149,8 @@ GROUP BY dc.tipo_cliente ORDER BY ingreso DESC;</pre></div>
 
     <!-- ============ D4 — PEDIDOS ============ -->
     <section class="dsh-panel" id="p4">
-      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el cumplimiento del ciclo de atención de pedidos y la estructura de medios de cobro para apoyar decisiones de control de gestión, mejora de procesos comerciales y definición de políticas de crédito que reduzcan el riesgo financiero de la empresa.</div>
-      <div class="dsh-goal"><b>Meta:</b> llegar a <b>90% de pedidos en estado "Entregado"</b>. <span class="dsh-badge" id="goal-4-badge">—</span></div>
+      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar la distribución y el valor de los pedidos según su estado y método de pago para apoyar decisiones gerenciales de seguimiento comercial, control de pedidos pendientes y gestión de los medios de cobro.</div>
+      <div class="dsh-goal"><b>Meta:</b> mantener al menos <b>90% de los pedidos históricos</b> en estado "Entregado", medido sobre el historial completo. <span class="dsh-badge" id="goal-4-badge">—</span></div>
 
       <div class="dsh-kpi-row">
         <div class="dsh-kpi"><div class="k-label">Pedidos entregados</div><div class="k-value" id="k4-1-value" style="color:var(--dsh-good)">—</div><div class="k-sub" id="k4-1-sub"></div></div>
@@ -186,8 +186,8 @@ FROM dw_dulce_cana.fact_ventas_dc GROUP BY metodo_pago ORDER BY valor DESC;</pre
 
     <!-- ============ D5 — PROVEEDORES Y PRODUCCIÓN ============ -->
     <section class="dsh-panel" id="p5">
-      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar el desempeño de los proveedores y la eficiencia del proceso productivo para apoyar decisiones estratégicas de abastecimiento, diversificación de proveedores y gestión del riesgo de continuidad operativa.</div>
-      <div class="dsh-goal"><b>Meta:</b> mantener al menos <b>90% de los lotes de producción finalizados</b>. <span class="dsh-badge" id="goal-5-badge">—</span></div>
+      <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar la concentración de las ventas asociadas a los proveedores y el estado general de los lotes de producción para apoyar decisiones gerenciales de abastecimiento, diversificación de proveedores y seguimiento de la continuidad productiva.</div>
+      <div class="dsh-goal"><b>Meta:</b> mantener al menos <b>90% de los lotes de producción registrados</b> en estado "Finalizado". <span class="dsh-badge" id="goal-5-badge">—</span></div>
 
       <div class="dsh-kpi-row">
         <div class="dsh-kpi"><div class="k-label">Proveedor líder</div><div class="k-value" id="k5-1-value" style="font-size:16px">—</div><div class="k-sub" id="k5-1-sub"></div></div>
