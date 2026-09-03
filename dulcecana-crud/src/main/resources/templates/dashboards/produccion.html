@@ -225,8 +225,20 @@ FROM dw_dulce_cana.vw_rentabilidad_lote ORDER BY fecha_produccion DESC;</pre></d
     });
 
     var lotesPositivos = data.rentabilidadLote.filter(function (l) { return Number(l.utilidadBruta) >= 0; }).length;
-    set('insight-1', '<b>Lectura:</b> ' + lotesPositivos + ' de ' + data.rentabilidadLote.length +
-      ' lotes tienen utilidad bruta positiva. La mayor parte del costo se concentra en materia prima — priorizar negociación de precio de la caña de azúcar y mejora del rendimiento tiene el mayor impacto en el margen.');
+    if (costoTotal <= 0 || data.rentabilidadLote.length === 0) {
+      set('insight-1', '<b>Lectura:</b> No existen datos suficientes de costos y rentabilidad para el periodo seleccionado.');
+    } else {
+      var componentesCosto = [
+        { label: 'Materia prima', valor: Number(data.costoMateriaPrima || 0), recomendacion: 'revisar el consumo de insumos y las condiciones negociadas con los proveedores' },
+        { label: 'Mano de obra', valor: Number(data.costoManoObra || 0), recomendacion: 'revisar la productividad, la distribución del personal y la eficiencia de los procesos' },
+        { label: 'Costos indirectos', valor: Number(data.costoIndirecto || 0), recomendacion: 'revisar los gastos generales, el uso de recursos y las oportunidades de reducción de costos' }
+      ];
+      var componenteMayor = componentesCosto.reduce(function (a, b) { return b.valor > a.valor ? b : a; });
+      var pctComponenteMayor = (componenteMayor.valor / costoTotal) * 100;
+      set('insight-1', '<b>Lectura:</b> ' + lotesPositivos + ' de ' + data.rentabilidadLote.length +
+        ' lotes tienen utilidad bruta positiva. El componente de mayor peso es ' + componenteMayor.label + ', con ' + fmt(componenteMayor.valor) +
+        ', equivalente al ' + pct1(pctComponenteMayor) + ' del costo total del periodo. Conviene ' + componenteMayor.recomendacion + '.');
+    }
 
     document.getElementById('hl-timestamp').textContent = 'Consultado: ' + new Date().toLocaleString('es-EC');
     document.getElementById('dshLoading').style.display = 'none';

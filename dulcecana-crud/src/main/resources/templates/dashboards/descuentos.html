@@ -159,9 +159,9 @@ FROM public.vw_descuentos_cliente;</pre></div>
       tbody.appendChild(tr);
     });
 
-    set('insight-1', '<b>Lectura:</b> ' + clientesConDescuento + ' de ' + totalClientes + ' clientes (' + pctClientes + '%) tienen un descuento negociado, ' +
-      'con un promedio de ' + pct1(descuentoPromedio) + '. Este descuento se aplica automáticamente a partir de ahora a cualquier pedido nuevo — ' +
-      'las ventas históricas ya facturadas se cobraron a precio de lista, antes de que existiera esta política.');
+    set('insight-1', '<b>Lectura:</b> ' + clientesConDescuento + ' de ' + totalClientes + ' clientes (' + pctClientes + '%) tienen un descuento negociado registrado, ' +
+      'con un promedio de ' + pct1(descuentoPromedio) + '. Estos porcentajes corresponden a las condiciones comerciales actualmente registradas para cada cliente. ' +
+      'El ingreso mostrado es el ingreso histórico generado por clientes que actualmente poseen descuento y no significa necesariamente que todas esas ventas se hayan realizado aplicando dicho descuento.');
 
     document.getElementById('hl-timestamp').textContent = 'Consultado: ' + new Date().toLocaleString('es-EC');
     document.getElementById('dshLoading').style.display = 'none';
