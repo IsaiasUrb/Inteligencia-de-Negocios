@@ -117,7 +117,7 @@ ORDER BY df.anio, df.mes;</pre></div>
     <!-- ============ D3 — CLIENTES ============ -->
     <section class="dsh-panel" id="p3">
       <div class="dsh-objective"><b>Objetivo gerencial:</b> evaluar la contribución económica y el comportamiento de compra de los distintos segmentos de clientes para apoyar decisiones gerenciales de priorización comercial, diferenciación de condiciones de venta y control de la concentración de ingresos.</div>
-      <div class="dsh-goal"><b>Meta:</b> alcanzar un ticket promedio histórico de al menos <b>$25 por pedido</b> en los segmentos Tienda y Minorista, medido sobre el historial completo de ventas. <span class="dsh-badge" id="goal-3-badge">—</span></div>
+      <div class="dsh-goal"><b>Meta:</b> alcanzar un ticket promedio mínimo de <b>$25 por pedido</b> en los segmentos Tienda y Minorista durante el periodo evaluado. <span class="dsh-badge" id="goal-3-badge">—</span></div>
 
       <div class="dsh-kpi-row">
         <div class="dsh-kpi"><div class="k-label">Segmento líder</div><div class="k-value" id="k3-1-value" style="font-size:16px">—</div><div class="k-sub" id="k3-1-sub"></div></div>
@@ -516,14 +516,17 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
       tbody3.appendChild(tr);
     });
     set('insight-3', '<b>Lectura:</b> el segmento ' + mejorTicket.label + ' compra en tickets más grandes que el resto — apoya diferenciar condiciones comerciales por volumen. ' + pct(act.activos, act.total) + '% de la cartera de clientes está activa.');
-    // Meta 3: ticket promedio Tienda/Minorista, siempre sobre el historial completo.
-    var tiendaFull = datosCompletos.clientesPorTipo.find(function (c) { return c.tipoCliente === 'Tienda'; });
-    var minoristaFull = datosCompletos.clientesPorTipo.find(function (c) { return c.tipoCliente === 'Minorista'; });
-    if (tiendaFull && minoristaFull) {
-      var ticketTiendaFull = Number(tiendaFull.ingreso) / Number(tiendaFull.pedidos);
-      var ticketMinoristaFull = Number(minoristaFull.ingreso) / Number(minoristaFull.pedidos);
-      setBadge('goal-3-badge', ticketTiendaFull >= 25 && ticketMinoristaFull >= 25,
-        'Tienda ' + fmt(ticketTiendaFull) + ' · Minorista ' + fmt(ticketMinoristaFull) + ' · histórico');
+    // Meta 3: ticket promedio Tienda/Minorista, sobre el periodo evaluado (el año elegido
+    // en el filtro, o el historial completo si el filtro está en "Todos los años") — a
+    // diferencia de las metas 1, 2, 4 y 5, esta sí se recalcula con cada cambio de año.
+    var tiendaSel = data.clientesPorTipo.find(function (c) { return c.tipoCliente === 'Tienda'; });
+    var minoristaSel = data.clientesPorTipo.find(function (c) { return c.tipoCliente === 'Minorista'; });
+    if (tiendaSel && minoristaSel) {
+      var ticketTiendaSel = Number(tiendaSel.ingreso) / Number(tiendaSel.pedidos);
+      var ticketMinoristaSel = Number(minoristaSel.ingreso) / Number(minoristaSel.pedidos);
+      var periodoMeta3 = selectAnio.value || 'Histórico';
+      setBadge('goal-3-badge', ticketTiendaSel >= 25 && ticketMinoristaSel >= 25,
+        'Tienda ' + fmt(ticketTiendaSel) + ' · Minorista ' + fmt(ticketMinoristaSel) + ' · ' + periodoMeta3);
     }
 
     // ---- D4: pedidos ----
