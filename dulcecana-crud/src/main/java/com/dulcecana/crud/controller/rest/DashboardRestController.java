@@ -20,12 +20,15 @@ public class DashboardRestController {
     }
 
     @GetMapping("/resumen")
-    public Map<String, Object> resumen() {
+    public Map<String, Object> resumen(@RequestParam(required = false) Integer anio) {
         Map<String, Object> out = new LinkedHashMap<>();
 
         Map<String, Object> totales = jdbcTemplate.queryForMap(
-                "SELECT SUM(subtotal) AS \"totalIngreso\", COUNT(DISTINCT id_pedido_origen) AS \"totalPedidos\" " +
-                        "FROM dw_dulce_cana.fact_ventas_dc");
+                "SELECT SUM(f.subtotal) AS \"totalIngreso\", COUNT(DISTINCT f.id_pedido_origen) AS \"totalPedidos\" " +
+                        "FROM dw_dulce_cana.fact_ventas_dc f " +
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "WHERE CAST(? AS integer) IS NULL OR df.anio = ?",
+                anio, anio);
         out.put("totalIngreso", totales.get("totalIngreso"));
         out.put("totalPedidos", totales.get("totalPedidos"));
 
@@ -35,9 +38,16 @@ public class DashboardRestController {
                         "ROUND(AVG(f.precio_unitario), 2) AS \"precioPromedio\" " +
                         "FROM dw_dulce_cana.fact_ventas_dc f " +
                         "JOIN dw_dulce_cana.dim_producto_dc dp ON f.id_producto_dw = dp.id_producto_dw " +
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "WHERE CAST(? AS integer) IS NULL OR df.anio = ? " +
                         "GROUP BY dp.tipo_producto, dp.nombre_producto, dp.precio_lista " +
-                        "ORDER BY ingreso DESC"));
+                        "ORDER BY ingreso DESC",
+                anio, anio));
 
+        // OJO: esta consulta NO se filtra por año a propósito — alimenta el cálculo
+        // de crecimiento (CAGR) del dashboard 01, que necesita TODO el historial
+        // para comparar el primer año contra el último año completo, sin importar
+        // qué año esté seleccionado en el filtro.
         out.put("productosPorAnio", jdbcTemplate.queryForList(
                 "SELECT df.anio, dp.tipo_producto AS \"tipoProducto\", SUM(f.subtotal) AS ingreso " +
                         "FROM dw_dulce_cana.fact_ventas_dc f " +
@@ -50,40 +60,64 @@ public class DashboardRestController {
                         "COUNT(DISTINCT f.id_pedido_origen) AS pedidos " +
                         "FROM dw_dulce_cana.fact_ventas_dc f " +
                         "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "WHERE CAST(? AS integer) IS NULL OR df.anio = ? " +
                         "GROUP BY df.anio, df.mes, df.nombre_mes " +
-                        "ORDER BY df.anio, df.mes"));
+                        "ORDER BY df.anio, df.mes",
+                anio, anio));
 
         out.put("clientesPorTipo", jdbcTemplate.queryForList(
                 "SELECT dc.tipo_cliente AS \"tipoCliente\", SUM(f.subtotal) AS ingreso, " +
                         "COUNT(DISTINCT f.id_pedido_origen) AS pedidos " +
                         "FROM dw_dulce_cana.fact_ventas_dc f " +
                         "JOIN dw_dulce_cana.dim_cliente_dc dc ON f.id_cliente_dw = dc.id_cliente_dw " +
-                        "GROUP BY dc.tipo_cliente ORDER BY ingreso DESC"));
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "WHERE CAST(? AS integer) IS NULL OR df.anio = ? " +
+                        "GROUP BY dc.tipo_cliente ORDER BY ingreso DESC",
+                anio, anio));
 
         out.put("topClientes", jdbcTemplate.queryForList(
                 "SELECT dc.nombre AS nombre, SUM(f.subtotal) AS ingreso " +
                         "FROM dw_dulce_cana.fact_ventas_dc f " +
                         "JOIN dw_dulce_cana.dim_cliente_dc dc ON f.id_cliente_dw = dc.id_cliente_dw " +
-                        "GROUP BY dc.nombre ORDER BY ingreso DESC LIMIT 5"));
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "WHERE CAST(? AS integer) IS NULL OR df.anio = ? " +
+                        "GROUP BY dc.nombre ORDER BY ingreso DESC LIMIT 5",
+                anio, anio));
 
+        // Sin filtrar a propósito: es un conteo de clientes activos/totales HOY, no
+        // ventas de un periodo — no tiene sentido "cuántos clientes estaban activos
+        // en 2022", el estado activo es del presente.
         out.put("clientesActivos", jdbcTemplate.queryForMap(
                 "SELECT COUNT(*) FILTER (WHERE activo) AS activos, COUNT(*) AS total " +
                         "FROM dw_dulce_cana.dim_cliente_dc"));
 
         out.put("estadoPedido", jdbcTemplate.queryForList(
-                "SELECT estado_pedido AS estado, COUNT(DISTINCT id_pedido_origen) AS pedidos, SUM(subtotal) AS valor " +
-                        "FROM dw_dulce_cana.fact_ventas_dc GROUP BY estado_pedido ORDER BY valor DESC"));
+                "SELECT f.estado_pedido AS estado, COUNT(DISTINCT f.id_pedido_origen) AS pedidos, SUM(f.subtotal) AS valor " +
+                        "FROM dw_dulce_cana.fact_ventas_dc f " +
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "WHERE CAST(? AS integer) IS NULL OR df.anio = ? " +
+                        "GROUP BY f.estado_pedido ORDER BY valor DESC",
+                anio, anio));
 
         out.put("metodoPago", jdbcTemplate.queryForList(
-                "SELECT metodo_pago AS metodo, SUM(subtotal) AS valor, COUNT(DISTINCT id_pedido_origen) AS pedidos " +
-                        "FROM dw_dulce_cana.fact_ventas_dc GROUP BY metodo_pago ORDER BY valor DESC"));
+                "SELECT f.metodo_pago AS metodo, SUM(f.subtotal) AS valor, COUNT(DISTINCT f.id_pedido_origen) AS pedidos " +
+                        "FROM dw_dulce_cana.fact_ventas_dc f " +
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "WHERE CAST(? AS integer) IS NULL OR df.anio = ? " +
+                        "GROUP BY f.metodo_pago ORDER BY valor DESC",
+                anio, anio));
 
         out.put("proveedores", jdbcTemplate.queryForList(
                 "SELECT dpv.nombre AS nombre, dpv.sector AS sector, SUM(f.subtotal) AS ingreso " +
                         "FROM dw_dulce_cana.fact_ventas_dc f " +
                         "JOIN dw_dulce_cana.dim_proveedor_dc dpv ON f.id_proveedor_dw = dpv.id_proveedor_dw " +
-                        "GROUP BY dpv.nombre, dpv.sector ORDER BY ingreso DESC"));
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON f.id_fecha = df.id_fecha " +
+                        "WHERE CAST(? AS integer) IS NULL OR df.anio = ? " +
+                        "GROUP BY dpv.nombre, dpv.sector ORDER BY ingreso DESC",
+                anio, anio));
 
+        // Sin filtrar a propósito: es el estado ACTUAL de cada lote de producción
+        // (Finalizado/Proceso), no algo que dependa del año de venta filtrado.
         out.put("lotes", jdbcTemplate.queryForList(
                 "SELECT estado, COUNT(*) AS n, SUM(cantidad_kg) AS \"kgTotal\" " +
                         "FROM dw_dulce_cana.dim_lote_dc GROUP BY estado"));
@@ -121,7 +155,7 @@ public class DashboardRestController {
     }
 
     @GetMapping("/produccion")
-    public Map<String, Object> produccion() {
+    public Map<String, Object> produccion(@RequestParam(required = false) Integer anio) {
         Map<String, Object> out = new LinkedHashMap<>();
 
         Map<String, Object> totales = jdbcTemplate.queryForMap(
@@ -130,10 +164,15 @@ public class DashboardRestController {
                         "SUM(fp.costo_mano_obra) AS \"costoManoObra\", " +
                         "SUM(fp.costo_indirecto) AS \"costoIndirecto\", " +
                         "ROUND(AVG(fp.rendimiento_pct), 2) AS \"rendimientoPromedio\" " +
-                        "FROM dw_dulce_cana.fact_produccion_dc fp");
+                        "FROM dw_dulce_cana.fact_produccion_dc fp " +
+                        "JOIN dw_dulce_cana.dim_fecha_dc df ON fp.id_fecha = df.id_fecha " +
+                        "WHERE CAST(? AS integer) IS NULL OR df.anio = ?",
+                anio, anio);
         Map<String, Object> rentabilidadTotales = jdbcTemplate.queryForMap(
                 "SELECT SUM(utilidad_bruta) AS \"utilidadBruta\", SUM(ingreso_atribuido) AS \"ingresoAtribuido\" " +
-                        "FROM dw_dulce_cana.vw_rentabilidad_lote");
+                        "FROM dw_dulce_cana.vw_rentabilidad_lote " +
+                        "WHERE CAST(? AS integer) IS NULL OR EXTRACT(YEAR FROM fecha_produccion) = ?",
+                anio, anio);
         out.putAll(totales);
         out.putAll(rentabilidadTotales);
 
@@ -141,22 +180,30 @@ public class DashboardRestController {
                 "SELECT anio, mes, nombre_mes AS \"nombreMes\", costo_materia_prima AS \"costoMateriaPrima\", " +
                         "costo_mano_obra AS \"costoManoObra\", costo_indirecto AS \"costoIndirecto\", " +
                         "costo_total AS \"costoTotal\" " +
-                        "FROM dw_dulce_cana.vw_costos_mensuales ORDER BY anio, mes"));
+                        "FROM dw_dulce_cana.vw_costos_mensuales " +
+                        "WHERE CAST(? AS integer) IS NULL OR anio = ? " +
+                        "ORDER BY anio, mes",
+                anio, anio));
 
         out.put("rentabilidadLote", jdbcTemplate.queryForList(
                 "SELECT id_lote_origen AS \"idLote\", fecha_produccion AS \"fechaProduccion\", proveedor, " +
                         "cantidad_kg_producida AS \"cantidadKg\", costo_total AS \"costoTotal\", " +
                         "ingreso_atribuido AS \"ingresoAtribuido\", utilidad_bruta AS \"utilidadBruta\", " +
                         "margen_utilidad_pct AS \"margenUtilidadPct\", rendimiento_pct AS \"rendimientoPct\" " +
-                        "FROM dw_dulce_cana.vw_rentabilidad_lote ORDER BY fecha_produccion DESC"));
+                        "FROM dw_dulce_cana.vw_rentabilidad_lote " +
+                        "WHERE CAST(? AS integer) IS NULL OR EXTRACT(YEAR FROM fecha_produccion) = ? " +
+                        "ORDER BY fecha_produccion DESC",
+                anio, anio));
 
         return out;
     }
 
     @GetMapping("/facturacion")
-    public Map<String, Object> facturacion() {
+    public Map<String, Object> facturacion(@RequestParam(required = false) Integer anio) {
         Map<String, Object> out = new LinkedHashMap<>();
 
+        // Sin filtrar a propósito: el inventario es el stock disponible HOY, no
+        // depende del año de facturación que se esté mirando.
         Map<String, Object> inventarioTotales = jdbcTemplate.queryForMap(
                 "SELECT SUM(valor_inventario) AS \"valorInventario\", " +
                         "COUNT(*) FILTER (WHERE stock < 20) AS \"productosStockBajo\" " +
@@ -164,7 +211,9 @@ public class DashboardRestController {
         Map<String, Object> facturaTotales = jdbcTemplate.queryForMap(
                 "SELECT SUM(total_facturado) AS \"totalFacturado\", " +
                         "COUNT(*) FILTER (WHERE estado_pago IN ('Pendiente', 'Parcial')) AS \"facturasPendientes\" " +
-                        "FROM public.factura");
+                        "FROM public.factura " +
+                        "WHERE CAST(? AS integer) IS NULL OR EXTRACT(YEAR FROM fecha_emision) = ?",
+                anio, anio);
         out.putAll(inventarioTotales);
         out.putAll(facturaTotales);
 
@@ -177,7 +226,10 @@ public class DashboardRestController {
                 "SELECT EXTRACT(YEAR FROM fecha_emision)::int AS anio, EXTRACT(MONTH FROM fecha_emision)::int AS mes, " +
                         "TO_CHAR(fecha_emision, 'TMMonth') AS \"nombreMes\", " +
                         "SUM(subtotal) AS subtotal, SUM(monto_iva) AS \"montoIva\", SUM(total_facturado) AS total " +
-                        "FROM public.factura GROUP BY 1, 2, 3 ORDER BY 1, 2"));
+                        "FROM public.factura " +
+                        "WHERE CAST(? AS integer) IS NULL OR EXTRACT(YEAR FROM fecha_emision) = ? " +
+                        "GROUP BY 1, 2, 3 ORDER BY 1, 2",
+                anio, anio));
 
         out.put("facturasPendientesDetalle", jdbcTemplate.queryForList(
                 "SELECT v.numero_factura AS \"numeroFactura\", v.fecha_emision AS \"fechaEmision\", " +
@@ -188,7 +240,9 @@ public class DashboardRestController {
                         "JOIN public.pedido p ON p.id_pedido = f.id_pedido " +
                         "JOIN public.cliente c ON c.id_cliente = p.id_cliente " +
                         "WHERE v.estado_pago IN ('Pendiente', 'Parcial') " +
-                        "ORDER BY v.fecha_emision DESC LIMIT 10"));
+                        "AND (CAST(? AS integer) IS NULL OR EXTRACT(YEAR FROM v.fecha_emision) = ?) " +
+                        "ORDER BY v.fecha_emision DESC LIMIT 10",
+                anio, anio));
 
         return out;
     }

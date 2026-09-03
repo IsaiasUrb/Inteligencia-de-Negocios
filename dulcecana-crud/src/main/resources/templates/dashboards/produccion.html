@@ -47,6 +47,13 @@
     qué rendimiento se obtiene de la materia prima principal (caña de azúcar) y qué utilidad deja cada lote frente al ingreso que generó.
   </div>
 
+  <div class="dsh-filterbar" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 14px;">
+    <label for="filtroAnio" style="font-size:12.5px; color:var(--dsh-ink-soft); font-weight:600;">Filtrar por año:</label>
+    <select id="filtroAnio" style="font:inherit; font-size:13px; padding:6px 10px; border-radius:4px; border:1.5px solid var(--dsh-ink); background:var(--dsh-surface); color:var(--dsh-ink); cursor:pointer;">
+      <option value="">Todos los años</option>
+    </select>
+  </div>
+
   <div id="dshLoading" style="padding:30px 2px; font-size:13px; color:var(--dsh-ink-soft)">Cargando datos desde dw_dulce_cana…</div>
 
   <div id="dshContent" style="display:none">
@@ -224,12 +231,43 @@ FROM dw_dulce_cana.vw_rentabilidad_lote ORDER BY fecha_produccion DESC;</pre></d
     document.getElementById('dshContent').style.display = 'block';
   }
 
-  fetch('/api/dashboards/produccion')
-    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(renderAll)
-    .catch(function (err) {
-      document.getElementById('dshLoading').textContent = 'No se pudieron cargar los datos (' + err.message + '). Verifica que la app esté conectada a dulcecana_db.';
+  var selectAnio = document.getElementById('filtroAnio');
+  var aniosPoblados = false;
+
+  function poblarAnios(data) {
+    if (aniosPoblados) return;
+    aniosPoblados = true;
+    var anios = Array.from(new Set(data.costosMensuales.map(function (r) { return Number(r.anio); }))).sort(function (a, b) { return a - b; });
+    anios.forEach(function (a) {
+      var opt = document.createElement('option');
+      opt.value = String(a);
+      opt.textContent = String(a);
+      selectAnio.appendChild(opt);
     });
+  }
+
+  function loadData(anio) {
+    document.getElementById('dshContent').style.display = 'none';
+    var loadingEl = document.getElementById('dshLoading');
+    loadingEl.textContent = 'Cargando datos desde dw_dulce_cana…';
+    loadingEl.style.display = 'block';
+    var url = '/api/dashboards/produccion' + (anio ? '?anio=' + anio : '');
+    fetch(url)
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        poblarAnios(data);
+        renderAll(data);
+      })
+      .catch(function (err) {
+        loadingEl.textContent = 'No se pudieron cargar los datos (' + err.message + '). Verifica que la app esté conectada a dulcecana_db.';
+      });
+  }
+
+  selectAnio.addEventListener('change', function () {
+    loadData(selectAnio.value || null);
+  });
+
+  loadData(null);
 })();
 </script>
 </body>

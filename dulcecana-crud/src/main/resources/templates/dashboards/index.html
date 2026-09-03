@@ -30,6 +30,14 @@
     <div><div class="dsh-label">Periodo cubierto</div><div class="dsh-value" id="hl-periodo" style="font-size:15px">—</div></div>
   </div>
 
+  <div class="dsh-filterbar" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 6px;">
+    <label for="filtroAnio" style="font-size:12.5px; color:var(--dsh-ink-soft); font-weight:600;">Filtrar por año:</label>
+    <select id="filtroAnio" style="font:inherit; font-size:13px; padding:6px 10px; border-radius:4px; border:1.5px solid var(--dsh-ink); background:var(--dsh-surface); color:var(--dsh-ink); cursor:pointer;">
+      <option value="">Todos los años</option>
+    </select>
+    <span style="font-size:12px; color:var(--dsh-ink-mute);">La línea de mayor crecimiento (pestaña 01), los clientes activos (pestaña 03) y el estado de los lotes (pestaña 05) siempre reflejan el historial completo o el estado actual — no cambian con este filtro.</span>
+  </div>
+
   <nav class="dsh-tabs" role="tablist">
     <button class="dsh-tab" role="tab" aria-selected="true" data-target="p1"><span class="n">01</span>Ventas por producto</button>
     <button class="dsh-tab" role="tab" aria-selected="false" data-target="p2"><span class="n">02</span>Evolución mensual</button>
@@ -397,7 +405,8 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
       tbody1.appendChild(tr);
     });
     // Crecimiento anual por línea: primer año del historial vs último año COMPLETO
-    // (el último año del dataset se asume parcial, por eso se compara contra el anterior)
+    // (el último año del dataset se asume parcial, por eso se compara contra el anterior).
+    // OJO: usa siempre data.productosPorAnio, que el backend NUNCA filtra por año.
     var porAnio = {};
     data.productosPorAnio.forEach(function (r) {
       var a = Number(r.anio);
@@ -540,12 +549,44 @@ FROM dw_dulce_cana.dim_lote_dc GROUP BY estado;</pre></div>
     document.getElementById('dshContent').style.display = 'block';
   }
 
-  fetch('/api/dashboards/resumen')
-    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(renderAll)
-    .catch(function (err) {
-      document.getElementById('dshLoading').textContent = 'No se pudieron cargar los datos (' + err.message + '). Verifica que la app esté conectada a dulcecana_db.';
+  // ---- Filtro de año: comparte los 5 paneles porque todos vienen de /api/dashboards/resumen ----
+  var selectAnio = document.getElementById('filtroAnio');
+  var aniosPoblados = false;
+
+  function poblarAnios(data) {
+    if (aniosPoblados) return;
+    aniosPoblados = true;
+    var anios = Array.from(new Set(data.productosPorAnio.map(function (r) { return Number(r.anio); }))).sort(function (a, b) { return a - b; });
+    anios.forEach(function (a) {
+      var opt = document.createElement('option');
+      opt.value = String(a);
+      opt.textContent = String(a);
+      selectAnio.appendChild(opt);
     });
+  }
+
+  function loadData(anio) {
+    document.getElementById('dshContent').style.display = 'none';
+    var loadingEl = document.getElementById('dshLoading');
+    loadingEl.textContent = 'Cargando datos desde dw_dulce_cana…';
+    loadingEl.style.display = 'block';
+    var url = '/api/dashboards/resumen' + (anio ? '?anio=' + anio : '');
+    fetch(url)
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        poblarAnios(data);
+        renderAll(data);
+      })
+      .catch(function (err) {
+        loadingEl.textContent = 'No se pudieron cargar los datos (' + err.message + '). Verifica que la app esté conectada a dulcecana_db.';
+      });
+  }
+
+  selectAnio.addEventListener('change', function () {
+    loadData(selectAnio.value || null);
+  });
+
+  loadData(null);
 })();
 </script>
 </body>
